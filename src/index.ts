@@ -1,63 +1,63 @@
-import type { ZodType } from "zod";
+import z, { ZodType } from "zod";
 
-type Context = {
-  request: Request;
-  body?: unknown;
+type AnySchema = ZodType<any, any, any>;
+type PotentialAnySchema = AnySchema | undefined;
+
+type Context<TBodySchema extends PotentialAnySchema> =
+  TBodySchema extends AnySchema
+    ? {
+        request: Request;
+        body: z.infer<TBodySchema>;
+      }
+    : {
+        request: Request;
+      };
+
+type Validation<TBodySchema extends PotentialAnySchema = undefined> = {
+  body?: TBodySchema;
 };
 
-type RouteHandler = (ctx: Context) => Response;
+type RouteHandler<TBodySchema extends PotentialAnySchema = undefined> = (
+  ctx: Context<TBodySchema>
+) => Response;
 type RoutePath = string;
-type Route = {
+type Route<TBodySchema extends PotentialAnySchema = undefined> = {
   path: RoutePath;
-  handler: RouteHandler;
-  validation?: Validation;
+  handler: RouteHandler<TBodySchema>;
+  validation?: Validation<TBodySchema>;
 };
 
-type Validation = {
-  body?: ZodType;
-};
-
-const onRequest = async (
+async function onRequest<TSchema extends PotentialAnySchema>(
   request: Request,
-  routeHandler: RouteHandler,
-  validation?: Validation
-): Promise<Response> => {
-  const context: Context = {
-    request: request,
-    body: undefined,
-  };
-
+  routeHandler: RouteHandler<TSchema>,
+  validation?: Validation<TSchema>
+): Promise<Response> {
   if (validation?.body && request.body) {
     const body = await request.body.json();
     const { error, data } = validation.body.safeParse(body);
-    if (error) {
-      return new Response(error.message, { status: 400 });
-    }
-    context.body = data;
+    if (error) return new Response(error.message, { status: 400 });
+
+    const context = { request, body: data } as Context<TSchema>;
+    return routeHandler(context);
   }
 
+  const context = { request } as Context<TSchema>;
   return routeHandler(context);
-};
+}
 
 export class Lyn {
-  private routes: Route[] = [];
+  private routes: Route<any>[] = [];
 
   get(path: RoutePath, handler: RouteHandler) {
     this.routes.push({ path, handler, validation: undefined });
     return this;
   }
 
-  post(path: RoutePath, handler: RouteHandler, validation?: Validation) {
-    this.routes.push({ path, handler, validation });
-    return this;
-  }
-
-  put(path: RoutePath, handler: RouteHandler, validation?: Validation) {
-    this.routes.push({ path, handler, validation });
-    return this;
-  }
-
-  delete(path: RoutePath, handler: RouteHandler, validation?: Validation) {
+  post<TSchema extends PotentialAnySchema = undefined>(
+    path: RoutePath,
+    handler: RouteHandler<TSchema>,
+    validation?: Validation<TSchema>
+  ) {
     this.routes.push({ path, handler, validation });
     return this;
   }

@@ -16,3 +16,22 @@ something simpler with authentication and security built-in by default.
 That's why Lyn focuses on being the easiest tool for POCs, solopreneurs, and agencies.
 
 Lyn leverages Bun and the best JavaScript libraries for the job.
+
+```ts
+new Lyn()
+  .get("/", () => {
+    return new Response("Hello World");
+  })
+  .post(
+    "/users",
+    ({ body }) => {
+      return new Response("Hello " + body.name);
+    },
+    {
+      body: z.object({
+        name: z.string(),
+      }),
+    }
+  )
+  .listen(3000);
+```
