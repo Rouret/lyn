@@ -5,6 +5,7 @@ import type {
   Context,
   Route,
   RoutePath,
+  BunRoutes,
 } from "#/types";
 import type { Server } from "bun";
 
@@ -37,7 +38,7 @@ export class Lyn {
   private server: Server<unknown> | null = null;
 
   get(path: RoutePath, handler: RouteHandler) {
-    this.routes.push({ path, handler, validation: undefined });
+    this.routes.push({ path, handler, validation: undefined, method: "GET" });
     return this;
   }
 
@@ -46,17 +47,31 @@ export class Lyn {
     handler: RouteHandler<TSchema>,
     validation?: Validation<TSchema>
   ) {
-    this.routes.push({ path, handler, validation });
+    this.routes.push({ path, handler, validation, method: "POST" });
+    return this;
+  }
+
+  delete<TSchema extends PotentialAnySchema = undefined>(
+    path: RoutePath,
+    handler: RouteHandler<TSchema>,
+    validation?: Validation<TSchema>
+  ) {
+    this.routes.push({ path, handler, validation, method: "DELETE" });
+    return this;
+  }
+
+  put<TSchema extends PotentialAnySchema = undefined>(
+    path: RoutePath,
+    handler: RouteHandler<TSchema>,
+    validation?: Validation<TSchema>
+  ) {
+    this.routes.push({ path, handler, validation, method: "PUT" });
     return this;
   }
 
   listen(port: number) {
-    const bunRoutes: Record<
-      RoutePath,
-      (request: Request) => Promise<Response>
-    > = this.routes.reduce((acc, route) => {
-      // The value is the function called by Bun to handle the request
-      acc[route.path] = async (request: Request): Promise<Response> => {
+    const bunRoutes: BunRoutes = this.routes.reduce((acc, route) => {
+      const handler = async (request: Request): Promise<Response> => {
         const response = await handleRequest(
           request,
           route.handler,
@@ -65,8 +80,13 @@ export class Lyn {
 
         return handleResponse(response);
       };
+
+      acc[route.path] ??= {};
+
+      acc[route.path]![route.method] = handler;
+
       return acc;
-    }, {} as Record<RoutePath, (request: Request) => Promise<Response>>);
+    }, {} as BunRoutes);
 
     this.server = Bun.serve({
       port,

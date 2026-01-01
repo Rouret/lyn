@@ -5,6 +5,9 @@ new Lyn()
   .get("/", () => {
     return new Response("Hello World");
   })
+  .post("/", () => {
+    return new Response("Hello World");
+  })
   .post(
     "/users",
     ({ body }) => {
