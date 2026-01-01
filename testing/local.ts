@@ -3,15 +3,21 @@ import { Lyn } from "../src";
 
 new Lyn()
   .get("/", () => {
-    return new Response("Hello World");
+    return "Hello World";
   })
-  .post("/", () => {
-    return new Response("Hello World");
+  .post("/", ({ set }) => {
+    set.status = 201;
+    return {
+      message: "Hello World",
+    };
   })
   .post(
     "/users",
-    ({ body }) => {
-      return new Response("Hello " + body.name);
+    ({ body, set }) => {
+      set.status = 201;
+      return {
+        message: "Hello " + body.name,
+      };
     },
     {
       body: z.object({

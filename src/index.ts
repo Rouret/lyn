@@ -1,37 +1,14 @@
+import { handleRequest, handleResponse } from "#/request";
 import type {
-  PotentialAnySchema,
-  RouteHandler,
-  Validation,
-  Context,
-  Route,
-  RoutePath,
   BunRoutes,
+  PotentialAnySchema,
+  Route,
+  RouteHandler,
+  RoutePath,
+  SetDefinition,
+  Validation,
 } from "#/types";
 import type { Server } from "bun";
-
-const handleResponse = (response: Response): Response => {
-  response.headers.set("Content-Type", "application/json");
-  return response;
-};
-
-const handleRequest = async <TSchema extends PotentialAnySchema>(
-  request: Request,
-  routeHandler: RouteHandler<TSchema>,
-  validation?: Validation<TSchema>
-): Promise<Response> => {
-  // Valifation Step
-  if (validation?.body && request.body) {
-    const body = await request.body.json();
-    const { error, data } = validation.body.safeParse(body);
-    if (error) return new Response(error.message, { status: 400 });
-
-    const context = { request, body: data } as Context<TSchema>;
-    return routeHandler(context);
-  }
-
-  const context = { request } as Context<TSchema>;
-  return routeHandler(context);
-};
 
 export class Lyn {
   private routes: Route<any>[] = [];
@@ -70,15 +47,28 @@ export class Lyn {
   }
 
   listen(port: number) {
+    if (typeof Bun === "undefined")
+      throw new Error("Lyn can only be used on Bun");
+
     const bunRoutes: BunRoutes = this.routes.reduce((acc, route) => {
       const handler = async (request: Request): Promise<Response> => {
+        const set: SetDefinition = {
+          headers: new Headers({ "Content-Type": "application/json" }),
+          status: 200,
+        };
         const response = await handleRequest(
           request,
           route.handler,
+          set,
           route.validation
         );
 
-        return handleResponse(response);
+        //Error from request lifecycle
+        if (response instanceof Response) {
+          return response;
+        }
+
+        return handleResponse(response, set.headers, set.status);
       };
 
       acc[route.path] ??= {};
@@ -96,10 +86,16 @@ export class Lyn {
     });
 
     process.on("beforeExit", async () => {
-      if (this.server) {
-        await this.server.stop?.();
-        this.server = null;
-      }
+      this.stop();
     });
+
+    return this;
+  }
+
+  async stop() {
+    if (this.server) {
+      await this.server.stop();
+      this.server = null;
+    }
   }
 }

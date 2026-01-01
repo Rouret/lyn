@@ -1,34 +1,37 @@
 import { Lyn } from "#/index";
-import { test, expect, spyOn } from "bun:test";
+import { test, expect, spyOn, describe } from "bun:test";
+import { TESTING_PORT } from "testing/constants";
 
-const spy = spyOn(Bun, "serve");
+describe("routes", () => {
+  const spy = spyOn(Bun, "serve");
+  test("routes are registered correctly", async () => {
+    const app = new Lyn()
+      .get("/", () => {
+        return "Hello World";
+      })
+      .post("/", () => {
+        return "Hello World";
+      })
+      .delete("/", () => {
+        return "Hello World";
+      })
+      .put("/", () => {
+        return "Hello World";
+      })
+      .listen(TESTING_PORT);
 
-test("routes are registered correctly", () => {
-  new Lyn()
-    .get("/", () => {
-      return new Response("Hello World");
-    })
-    .post("/", () => {
-      return new Response("Hello World");
-    })
-    .delete("/", () => {
-      return new Response("Hello World");
-    })
-    .put("/", () => {
-      return new Response("Hello World");
-    })
-    .listen(3000);
-
-  expect(spy).toHaveBeenCalledWith(
-    expect.objectContaining({
-      routes: expect.objectContaining({
-        "/": expect.objectContaining({
-          GET: expect.any(Function),
-          POST: expect.any(Function),
-          DELETE: expect.any(Function),
-          PUT: expect.any(Function),
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routes: expect.objectContaining({
+          "/": expect.objectContaining({
+            GET: expect.any(Function),
+            POST: expect.any(Function),
+            DELETE: expect.any(Function),
+            PUT: expect.any(Function),
+          }),
         }),
-      }),
-    })
-  );
+      })
+    );
+    await app.stop();
+  });
 });

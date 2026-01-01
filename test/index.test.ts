@@ -9,7 +9,9 @@ describe("Post's body validation", () => {
       .post(
         "/users",
         ({ body }) => {
-          return new Response("Hello " + body.name);
+          return {
+            message: "Hello " + body.name,
+          };
         },
         {
           body: z.object({
@@ -25,7 +27,11 @@ describe("Post's body validation", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.text()).toBe("Hello John");
+    expect(await response.json()).toMatchObject({
+      message: "Hello John",
+    });
+
+    await app.stop();
   });
 
   it("send bad request", async () => {
@@ -33,7 +39,9 @@ describe("Post's body validation", () => {
       .post(
         "/users",
         ({ body }) => {
-          return new Response("Hello " + body.name);
+          return {
+            message: "Hello " + body.name,
+          };
         },
         {
           body: z.object({
@@ -49,5 +57,6 @@ describe("Post's body validation", () => {
     });
 
     expect(response.status).toBe(400);
+    await app.stop();
   });
 });
