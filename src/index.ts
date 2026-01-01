@@ -1,37 +1,24 @@
-import z, { ZodType } from "zod";
+import type {
+  PotentialAnySchema,
+  RouteHandler,
+  Validation,
+  Context,
+  Route,
+  RoutePath,
+} from "#/types";
+import type { Server } from "bun";
 
-type AnySchema = ZodType<any, any, any>;
-type PotentialAnySchema = AnySchema | undefined;
-
-type Context<TBodySchema extends PotentialAnySchema> =
-  TBodySchema extends AnySchema
-    ? {
-        request: Request;
-        body: z.infer<TBodySchema>;
-      }
-    : {
-        request: Request;
-      };
-
-type Validation<TBodySchema extends PotentialAnySchema = undefined> = {
-  body?: TBodySchema;
+const handleResponse = (response: Response): Response => {
+  response.headers.set("Content-Type", "application/json");
+  return response;
 };
 
-type RouteHandler<TBodySchema extends PotentialAnySchema = undefined> = (
-  ctx: Context<TBodySchema>
-) => Response;
-type RoutePath = string;
-type Route<TBodySchema extends PotentialAnySchema = undefined> = {
-  path: RoutePath;
-  handler: RouteHandler<TBodySchema>;
-  validation?: Validation<TBodySchema>;
-};
-
-async function onRequest<TSchema extends PotentialAnySchema>(
+const handleRequest = async <TSchema extends PotentialAnySchema>(
   request: Request,
   routeHandler: RouteHandler<TSchema>,
   validation?: Validation<TSchema>
-): Promise<Response> {
+): Promise<Response> => {
+  // Valifation Step
   if (validation?.body && request.body) {
     const body = await request.body.json();
     const { error, data } = validation.body.safeParse(body);
@@ -43,10 +30,11 @@ async function onRequest<TSchema extends PotentialAnySchema>(
 
   const context = { request } as Context<TSchema>;
   return routeHandler(context);
-}
+};
 
 export class Lyn {
   private routes: Route<any>[] = [];
+  private server: Server<unknown> | null = null;
 
   get(path: RoutePath, handler: RouteHandler) {
     this.routes.push({ path, handler, validation: undefined });
@@ -68,15 +56,30 @@ export class Lyn {
       (request: Request) => Promise<Response>
     > = this.routes.reduce((acc, route) => {
       // The value is the function called by Bun to handle the request
-      acc[route.path] = (request: Request): Promise<Response> =>
-        onRequest(request, route.handler, route.validation);
+      acc[route.path] = async (request: Request): Promise<Response> => {
+        const response = await handleRequest(
+          request,
+          route.handler,
+          route.validation
+        );
+
+        return handleResponse(response);
+      };
       return acc;
     }, {} as Record<RoutePath, (request: Request) => Promise<Response>>);
 
-    Bun.serve({
+    this.server = Bun.serve({
       port,
       routes: bunRoutes,
+      reusePort: true,
+      idleTimeout: 30,
     });
-    console.log(`Server is running on port ${port}`);
+
+    process.on("beforeExit", async () => {
+      if (this.server) {
+        await this.server.stop?.();
+        this.server = null;
+      }
+    });
   }
 }
