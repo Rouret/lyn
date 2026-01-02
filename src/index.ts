@@ -1,4 +1,5 @@
-import { handleRequest, handleResponse } from "#/request";
+import { InternalServerError, type LynError } from "#/error";
+import { handleError, handleRequest, handleResponse } from "#/request";
 import type {
   BunRoutes,
   PotentialAnySchema,
@@ -8,6 +9,7 @@ import type {
   SetDefinition,
   Validation,
 } from "#/types";
+import { getDefaultStatusFromMethod } from "#/utils";
 import type { Server } from "bun";
 
 export class Lyn {
@@ -52,23 +54,30 @@ export class Lyn {
 
     const bunRoutes: BunRoutes = this.routes.reduce((acc, route) => {
       const handler = async (request: Request): Promise<Response> => {
-        const set: SetDefinition = {
-          headers: new Headers({ "Content-Type": "application/json" }),
-          status: 200,
-        };
-        const response = await handleRequest(
-          request,
-          route.handler,
-          set,
-          route.validation
-        );
+        try {
+          const set: SetDefinition = {
+            headers: new Headers(),
+            status: getDefaultStatusFromMethod(route.method),
+          };
 
-        //Error from request lifecycle
-        if (response instanceof Response) {
-          return response;
+          const responseBody = await handleRequest(
+            request,
+            route.handler,
+            set,
+            route.validation
+          );
+
+          return handleResponse(responseBody, set.headers, set.status);
+        } catch (error: any) {
+          // If the error is a LynError, throw it
+          if (error["isLynError"]) {
+            return handleError(error as LynError);
+          }
+          // Else, send Internal Server Error and log the error
+          //TODO : LOGGER
+          console.error(error);
+          return handleError(new InternalServerError());
         }
-
-        return handleResponse(response, set.headers, set.status);
       };
 
       acc[route.path] ??= {};

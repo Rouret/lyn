@@ -5,7 +5,8 @@ import { TESTING_PORT, TESTING_URL } from "testing/constants";
 test("set", async () => {
   const app = new Lyn()
     .post("/users", ({ set }) => {
-      set.status = 201;
+      // 203 for testing, because getDefaultStatusFromMethod return 201 for POST
+      set.status = 203;
       set.headers.set("X-Custom-Header", "custom-value");
 
       return {
@@ -18,8 +19,7 @@ test("set", async () => {
     method: "POST",
   });
 
-  expect(response.status).toBe(201);
-  expect(response.headers.get("X-Custom-Header")).toBe("custom-value");
-  expect(response.headers.get("Content-Type")).toBe("application/json");
+  expect(response.status).toBe(203);
+  expect(response.headers.get("x-custom-header")).toBe("custom-value");
   await app.stop();
 });

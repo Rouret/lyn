@@ -2,8 +2,13 @@ import z from "zod";
 import { Lyn } from "../src";
 
 new Lyn()
-  .get("/", () => {
+  .get("/text", () => {
     return "Hello World";
+  })
+  .get("/json", () => {
+    return {
+      message: "Hello World",
+    };
   })
   .post("/", ({ set }) => {
     set.status = 201;

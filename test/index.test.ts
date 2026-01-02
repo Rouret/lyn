@@ -26,7 +26,7 @@ describe("Post's body validation", () => {
       body: JSON.stringify({ name: "John" }),
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({
       message: "Hello John",
     });

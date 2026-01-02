@@ -36,10 +36,10 @@ export type Context<TBodySchema extends PotentialAnySchema> =
 export type Validation<TBodySchema extends PotentialAnySchema = undefined> = {
   body?: TBodySchema;
 };
-export type RouteHandlerResponse = string | object | null;
+export type RouteHandlerBodyResponse = string | object | null;
 export type RouteHandler<TBodySchema extends PotentialAnySchema = undefined> = (
   ctx: Context<TBodySchema>
-) => RouteHandlerResponse;
+) => RouteHandlerBodyResponse;
 
 export type RoutePath = string;
 export type Route<TBodySchema extends PotentialAnySchema = undefined> = {
