@@ -1,51 +1,65 @@
 import { handleRequestLifecycle } from "#/request";
 import type {
   BunRoutes,
+  ParamsSchema,
   PotentialAnySchema,
   Route,
   RouteHandler,
   RoutePath,
   Validation,
 } from "#/types";
-import type { Server } from "bun";
+import type { BunRequest, Server } from "bun";
 
 export class Lyn {
-  private routes: Route<any>[] = [];
+  private routes: Route<any, any>[] = [];
   private server: Server<unknown> | null = null;
 
-  get(path: RoutePath, handler: RouteHandler) {
-    this.addRoute({ path, handler, validation: undefined, method: "GET" });
+  get<TParamsSchema extends ParamsSchema = undefined>(
+    path: RoutePath,
+    handler: RouteHandler<undefined, TParamsSchema>,
+    validation?: Validation<undefined, TParamsSchema>
+  ) {
+    this.addRoute({ path, handler, validation: validation, method: "GET" });
     return this;
   }
 
-  post<TSchema extends PotentialAnySchema = undefined>(
+  post<
+    TBodySchema extends PotentialAnySchema = undefined,
+    TParamsSchema extends ParamsSchema = undefined
+  >(
     path: RoutePath,
-    handler: RouteHandler<TSchema>,
-    validation?: Validation<TSchema>
+    handler: RouteHandler<TBodySchema, TParamsSchema>,
+    validation?: Validation<TBodySchema, TParamsSchema>
   ) {
     this.addRoute({ path, handler, validation, method: "POST" });
     return this;
   }
 
-  delete<TSchema extends PotentialAnySchema = undefined>(
+  delete<
+    TBodySchema extends PotentialAnySchema = undefined,
+    TParamsSchema extends ParamsSchema = undefined
+  >(
     path: RoutePath,
-    handler: RouteHandler<TSchema>,
-    validation?: Validation<TSchema>
+    handler: RouteHandler<TBodySchema, TParamsSchema>,
+    validation?: Validation<TBodySchema, TParamsSchema>
   ) {
     this.addRoute({ path, handler, validation, method: "DELETE" });
     return this;
   }
 
-  put<TSchema extends PotentialAnySchema = undefined>(
+  put<
+    TBodySchema extends PotentialAnySchema = undefined,
+    TParamsSchema extends ParamsSchema = undefined
+  >(
     path: RoutePath,
-    handler: RouteHandler<TSchema>,
-    validation?: Validation<TSchema>
+    handler: RouteHandler<TBodySchema, TParamsSchema>,
+    validation?: Validation<TBodySchema, TParamsSchema>
   ) {
     this.addRoute({ path, handler, validation, method: "PUT" });
     return this;
   }
 
-  private addRoute(route: Route<any>) {
+  private addRoute(route: Route<any, any>) {
     if (route.path === "") {
       this.stop();
       throw new Error("Route path cannot be empty");
@@ -58,7 +72,7 @@ export class Lyn {
       throw new Error("Lyn can only be used on Bun");
 
     const bunRoutes: BunRoutes = this.routes.reduce((acc, route) => {
-      const handler = async (request: Request): Promise<Response> =>
+      const handler = async (request: BunRequest): Promise<Response> =>
         handleRequestLifecycle(request, route);
 
       acc[route.path] ??= {};

@@ -24,6 +24,11 @@ export class NoBodyError extends LynError {
     super("NO_BODY", 400, "No body provided");
   }
 }
+export class NoParamsError extends LynError {
+  constructor() {
+    super("NO_PARAMS", 400, "No params provided");
+  }
+}
 
 export class InternalServerError extends LynError {
   constructor() {

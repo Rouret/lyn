@@ -2,10 +2,12 @@ import {
   InternalServerError,
   LynError,
   NoBodyError,
+  NoParamsError,
   ValidationError,
 } from "#/error";
 import type {
   Context,
+  ParamsSchema,
   PotentialAnySchema,
   Route,
   RouteHandler,
@@ -14,6 +16,7 @@ import type {
   Validation,
 } from "#/types";
 import { getDefaultStatusFromMethod } from "#/utils";
+import type { BunRequest } from "bun";
 
 /*
  Request -> handleRequest -> handler -> handleResponse -> Response
@@ -21,7 +24,7 @@ import { getDefaultStatusFromMethod } from "#/utils";
                   -> handleError ----------------------
  */
 export const handleRequestLifecycle = async (
-  request: Request,
+  request: BunRequest,
   route: Route
 ): Promise<Response> => {
   try {
@@ -84,13 +87,25 @@ export const handleResponse = (
   });
 };
 
-export const handleRequest = async <TSchema extends PotentialAnySchema>(
-  request: Request,
-  routeHandler: RouteHandler<TSchema>,
+export const handleRequest = async <
+  TBodySchema extends PotentialAnySchema,
+  TParamsSchema extends ParamsSchema
+>(
+  request: BunRequest,
+  routeHandler: RouteHandler<TBodySchema, TParamsSchema>,
   set: SetDefinition,
-  validation?: Validation<TSchema>
+  validation?: Validation<TBodySchema, TParamsSchema>
 ): Promise<RouteHandlerBodyResponse> => {
+  //@ts-expect-error - We need to assign the body and params to the context later
+  const context: Context<TBodySchema, TParamsSchema> = {
+    request,
+    set,
+    body: undefined,
+    params: undefined,
+  };
+
   // Valifation Step
+  // Body Validation
   if (validation?.body) {
     if (!request.body) {
       throw new NoBodyError();
@@ -102,11 +117,22 @@ export const handleRequest = async <TSchema extends PotentialAnySchema>(
       throw new ValidationError(error);
     }
 
-    const context = { request, body: data, set } as Context<TSchema>;
-    return routeHandler(context);
+    context.body = data;
   }
 
-  const context = { request, set } as Context<TSchema>;
+  // Params Validation
+  if (validation?.params) {
+    if (Object.keys(request.params).length === 0) {
+      throw new NoParamsError();
+    }
+
+    const params = request.params;
+    const { error, data } = validation.params.safeParse(params);
+    if (error) {
+      throw new ValidationError(error);
+    }
+    context.params = data;
+  }
   return routeHandler(context);
 };
 

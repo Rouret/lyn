@@ -10,6 +10,19 @@ new Lyn()
       message: "Hello World",
     };
   })
+  .get(
+    "/:name",
+    ({ params }) => {
+      return {
+        message: "Hello " + params.name,
+      };
+    },
+    {
+      params: z.object({
+        name: z.string(),
+      }),
+    }
+  )
   .post("/", ({ set }) => {
     set.status = 201;
     return {

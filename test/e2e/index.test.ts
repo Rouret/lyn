@@ -111,3 +111,29 @@ describe("Post's body validation", () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe("Params validation", () => {
+  it("validate the params", async () => {
+    app = new Lyn()
+      .get(
+        "/:name",
+        ({ params }) => {
+          return {
+            message: "Hello " + params.name,
+          };
+        },
+        {
+          params: z.object({
+            name: z.string(),
+          }),
+        }
+      )
+      .listen(TESTING_PORT);
+
+    const response = await testFetch.get("/John");
+
+    expect(await response.json()).toMatchObject({
+      message: "Hello John",
+    });
+  });
+});
