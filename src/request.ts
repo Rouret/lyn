@@ -1,12 +1,54 @@
-import { LynError, NoBodyError, ValidationError } from "#/error";
+import {
+  InternalServerError,
+  LynError,
+  NoBodyError,
+  ValidationError,
+} from "#/error";
 import type {
   Context,
   PotentialAnySchema,
+  Route,
   RouteHandler,
   RouteHandlerBodyResponse,
   SetDefinition,
   Validation,
 } from "#/types";
+import { getDefaultStatusFromMethod } from "#/utils";
+
+/*
+ Request -> handleRequest -> handler -> handleResponse -> Response
+                 | (on error)                          |
+                  -> handleError ----------------------
+ */
+export const handleRequestLifecycle = async (
+  request: Request,
+  route: Route
+): Promise<Response> => {
+  try {
+    const set: SetDefinition = {
+      headers: new Headers(),
+      status: getDefaultStatusFromMethod(route.method),
+    };
+
+    const responseBody = await handleRequest(
+      request,
+      route.handler,
+      set,
+      route.validation
+    );
+
+    return handleResponse(responseBody, set.headers, set.status);
+  } catch (error: any) {
+    // If the error is a LynError, throw it
+    if (error["isLynError"]) {
+      return handleError(error as LynError);
+    }
+    // Else, send Internal Server Error and log the error
+    //TODO : LOGGER
+    console.error(error);
+    return handleError(new InternalServerError());
+  }
+};
 
 export const handleFormattedBody = (
   handlerResponse: RouteHandlerBodyResponse

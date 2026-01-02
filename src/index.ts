@@ -1,15 +1,12 @@
-import { InternalServerError, type LynError } from "#/error";
-import { handleError, handleRequest, handleResponse } from "#/request";
+import { handleRequestLifecycle } from "#/request";
 import type {
   BunRoutes,
   PotentialAnySchema,
   Route,
   RouteHandler,
   RoutePath,
-  SetDefinition,
   Validation,
 } from "#/types";
-import { getDefaultStatusFromMethod } from "#/utils";
 import type { Server } from "bun";
 
 export class Lyn {
@@ -17,7 +14,7 @@ export class Lyn {
   private server: Server<unknown> | null = null;
 
   get(path: RoutePath, handler: RouteHandler) {
-    this.routes.push({ path, handler, validation: undefined, method: "GET" });
+    this.addRoute({ path, handler, validation: undefined, method: "GET" });
     return this;
   }
 
@@ -26,7 +23,7 @@ export class Lyn {
     handler: RouteHandler<TSchema>,
     validation?: Validation<TSchema>
   ) {
-    this.routes.push({ path, handler, validation, method: "POST" });
+    this.addRoute({ path, handler, validation, method: "POST" });
     return this;
   }
 
@@ -35,7 +32,7 @@ export class Lyn {
     handler: RouteHandler<TSchema>,
     validation?: Validation<TSchema>
   ) {
-    this.routes.push({ path, handler, validation, method: "DELETE" });
+    this.addRoute({ path, handler, validation, method: "DELETE" });
     return this;
   }
 
@@ -44,8 +41,16 @@ export class Lyn {
     handler: RouteHandler<TSchema>,
     validation?: Validation<TSchema>
   ) {
-    this.routes.push({ path, handler, validation, method: "PUT" });
+    this.addRoute({ path, handler, validation, method: "PUT" });
     return this;
+  }
+
+  private addRoute(route: Route<any>) {
+    if (route.path === "") {
+      this.stop();
+      throw new Error("Route path cannot be empty");
+    }
+    this.routes.push(route);
   }
 
   listen(port: number) {
@@ -53,32 +58,8 @@ export class Lyn {
       throw new Error("Lyn can only be used on Bun");
 
     const bunRoutes: BunRoutes = this.routes.reduce((acc, route) => {
-      const handler = async (request: Request): Promise<Response> => {
-        try {
-          const set: SetDefinition = {
-            headers: new Headers(),
-            status: getDefaultStatusFromMethod(route.method),
-          };
-
-          const responseBody = await handleRequest(
-            request,
-            route.handler,
-            set,
-            route.validation
-          );
-
-          return handleResponse(responseBody, set.headers, set.status);
-        } catch (error: any) {
-          // If the error is a LynError, throw it
-          if (error["isLynError"]) {
-            return handleError(error as LynError);
-          }
-          // Else, send Internal Server Error and log the error
-          //TODO : LOGGER
-          console.error(error);
-          return handleError(new InternalServerError());
-        }
-      };
+      const handler = async (request: Request): Promise<Response> =>
+        handleRequestLifecycle(request, route);
 
       acc[route.path] ??= {};
 
@@ -90,7 +71,6 @@ export class Lyn {
     this.server = Bun.serve({
       port,
       routes: bunRoutes,
-      reusePort: true,
       idleTimeout: 30,
     });
 

@@ -1,0 +1,6 @@
+[test]
+
+coveragePathIgnorePatterns = [
+  "testing/**",
+  "src/error.ts",
+]

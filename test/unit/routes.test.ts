@@ -3,8 +3,8 @@ import { test, expect, spyOn, describe } from "bun:test";
 import { TESTING_PORT } from "testing/constants";
 
 describe("routes", () => {
-  const spy = spyOn(Bun, "serve");
   test("routes are registered correctly", async () => {
+    const spy = spyOn(Bun, "serve");
     const app = new Lyn()
       .get("/", () => {
         return "Hello World";
@@ -19,7 +19,7 @@ describe("routes", () => {
         return "Hello World";
       })
       .listen(TESTING_PORT);
-
+    await app.stop();
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({
         routes: expect.objectContaining({
@@ -32,6 +32,7 @@ describe("routes", () => {
         }),
       })
     );
-    await app.stop();
+
+    spy.mockRestore();
   });
 });
