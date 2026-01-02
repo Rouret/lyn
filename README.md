@@ -1,4 +1,12 @@
-Lyn is a lightweight HTTP server framework for Bun.
+<h1 align='center'>
+ Lyn
+</h1>
+
+<h3 align='center'>
+  <b>Lyn is a lightweight Backend TypeScript framework with Bun.</b>
+</h3>
+
+### What and Why Lyn?
 
 Lyn is:
 
@@ -17,11 +25,31 @@ That's why Lyn focuses on being the easiest tool for POCs, solopreneurs, and age
 
 Lyn leverages Bun and the best JavaScript libraries for the job.
 
+### Code example
+
 ```ts
 new Lyn()
-  .get("/", () => {
+  .get("/text", () => {
     return "Hello World";
   })
+  .get("/json", () => {
+    return {
+      message: "Hello World",
+    };
+  })
+  .get(
+    "/:name",
+    ({ params }) => {
+      return {
+        message: "Hello " + params.name,
+      };
+    },
+    {
+      params: z.object({
+        name: z.string(),
+      }),
+    }
+  )
   .post("/", ({ set }) => {
     set.status = 201;
     return {
@@ -44,3 +72,22 @@ new Lyn()
   )
   .listen(3000);
 ```
+
+### Roadmap:
+
+- [x] Register Routes
+- [x] Request lifecycle
+- [x] Body validation
+- [x] Params validation
+- [ ] Search params validation
+- [ ] Optimize the request lifecycle with ghost objects
+- [ ] Add a logger
+- Do a Security Checklist
+
+### Contact
+
+[X @RouretLucas](https://x.com/RouretLucas)
+
+### License
+
+MIT
