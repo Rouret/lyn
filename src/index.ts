@@ -10,8 +10,9 @@ import type {
   Validation,
 } from "#/types";
 import type { BunRequest, Server } from "bun";
+import z from "zod";
 
-export class Lyn {
+class Lyn {
   private routes: Route<any, any, any>[] = [];
   private server: Server<unknown> | null = null;
   private baseUrl: string | null = null;
@@ -119,3 +120,5 @@ export class Lyn {
     }
   }
 }
+
+export { Lyn, z };

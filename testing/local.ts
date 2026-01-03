@@ -1,5 +1,4 @@
-import z from "zod";
-import { Lyn } from "../src";
+import { Lyn, z } from "../src";
 
 type User = {
   email: string;

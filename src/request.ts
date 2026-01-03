@@ -57,7 +57,7 @@ export const handleRequestLifecycle = async (
   }
 };
 
-export const handleFormattedBody = (
+const handleFormattedBody = (
   handlerResponse: RouteHandlerBodyResponse
 ): string => {
   if (typeof handlerResponse === "string") {
@@ -75,7 +75,7 @@ const getContentTypeFromBodyResponse = (
   return "application/json";
 };
 
-export const handleResponse = (
+const handleResponse = (
   bodyResponse: RouteHandlerBodyResponse,
   headers: Headers,
   status: number
@@ -91,7 +91,7 @@ export const handleResponse = (
   });
 };
 
-export const handleRequest = async <
+const handleRequest = async <
   TBodySchema extends PotentialAnySchema,
   TParamsSchema extends ParamsSchema,
   TQuerySchema extends QuerySchema
@@ -175,7 +175,7 @@ export const handleRequest = async <
   return routeHandler(context);
 };
 
-export const handleError = (error: LynError): Response => {
+const handleError = (error: LynError): Response => {
   return new Response(
     JSON.stringify({
       code: error.code,

@@ -80,9 +80,8 @@ new Lyn()
 - [x] Body validation
 - [x] Params validation
 - [x] Query validation
-- [ ] Handler function for tests ?
-- [ ] Optimize the request lifecycle with ghost objects
 - [ ] Add a logger
+- [ ] Auth
 - Do a Security Checklist
 
 ### Contact

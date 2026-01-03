@@ -3,7 +3,7 @@ import z, { ZodType } from "zod";
 
 /* HTTP */
 
-export const LYN_SUPPORTED_METHODS = {
+const LYN_SUPPORTED_METHODS = {
   GET: true,
   DELETE: true,
   POST: true,
