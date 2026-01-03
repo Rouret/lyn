@@ -29,7 +29,7 @@ export type BodyContext<TSchema extends PotentialAnySchema> =
       }
     : {};
 
-type ParamPrimitive = z.ZodString | z.ZodNumber | z.ZodBoolean;
+type ParamPrimitive = z.ZodString | z.ZodNumber;
 type ParamLeaf = ParamPrimitive | z.ZodArray<ParamPrimitive>;
 
 type QueryPrimitive =
@@ -44,6 +44,8 @@ export type ParamsSchema = z.ZodObject<Record<string, ParamLeaf>> | undefined;
 export type QuerySchema =
   | z.ZodObject<Record<string, QueryPrimitive>>
   | undefined;
+
+export type QueryInfer = z.infer<QueryPrimitive>;
 
 export type QueryContext<TSchema extends QuerySchema> =
   TSchema extends QuerySchema

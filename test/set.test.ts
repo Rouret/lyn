@@ -1,5 +1,6 @@
 import { handleRequestLifecycle } from "#/request";
 import type { Route } from "#/types";
+import type { BunRequest } from "bun";
 import { expect, test } from "bun:test";
 import { requestFactory } from "testing/utilsTest";
 
@@ -18,7 +19,10 @@ test("set", async () => {
     method: "GET",
   };
 
-  const response = await handleRequestLifecycle(request, fakeRoute);
+  const response = await handleRequestLifecycle(
+    request as BunRequest,
+    fakeRoute
+  );
   expect(response.status).toBe(201);
   expect(response.headers.get("x-custom-header")).toBe("custom-value");
 });

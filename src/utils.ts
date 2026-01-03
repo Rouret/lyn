@@ -1,5 +1,5 @@
-import { InternalServerError } from "#/error";
-import type { LynSupportedMethods, QuerySchema } from "#/types";
+import type { LynSupportedMethods } from "#/types";
+import z from "zod";
 
 export const getDefaultStatusFromMethod = (
   method: LynSupportedMethods

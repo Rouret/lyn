@@ -1,6 +1,5 @@
 import { Lyn } from "#/index";
 import { test, expect, spyOn, describe } from "bun:test";
-import { TESTING_PORT } from "testing/constants";
 
 describe("routes", () => {
   test("routes are registered correctly", async () => {
@@ -18,7 +17,7 @@ describe("routes", () => {
       .put("/", () => {
         return "Hello World";
       })
-      .listen(TESTING_PORT);
+      .listen();
     await app.stop();
     expect(spy).toHaveBeenCalledWith(
       expect.objectContaining({

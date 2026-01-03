@@ -3,9 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "bun --hot run testing/local.ts",
-    "test:e2e": "bun test test/e2e",
-    "test:unit": "bun test test/unit"
+    "dev": "bun --hot run testing/local.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

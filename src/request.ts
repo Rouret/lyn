@@ -10,6 +10,7 @@ import type {
   Context,
   ParamsSchema,
   PotentialAnySchema,
+  QueryInfer,
   QuerySchema,
   Route,
   RouteHandler,
@@ -19,8 +20,9 @@ import type {
 } from "#/types";
 import { getDefaultStatusFromMethod } from "#/utils";
 import type { BunRequest } from "bun";
+import { record, ZodBoolean, ZodNumber, ZodString } from "zod";
 
-/*
+/*        | ---------handleRequestLifecycle----------|
  Request -> handleRequest -> handler -> handleResponse -> Response
                  | (on error)                          |
                   -> handleError ----------------------
@@ -145,14 +147,29 @@ export const handleRequest = async <
       throw new NoQueryError();
     }
 
-    const query = Object.fromEntries(searchParams);
-    console.log(query);
-    const { error, data } = validation.query.safeParse(query);
-    if (error) {
-      throw new ValidationError(error);
+    const out: Record<string, QueryInfer> = {};
+
+    for (const key in validation.query.shape) {
+      const field = validation.query.shape[key];
+      if (!field) continue;
+
+      const values = searchParams.getAll(key);
+      if (values.length !== 1) continue;
+
+      const value = values[0] as string;
+
+      if (field instanceof ZodString) {
+        out[key] = value;
+      } else if (field instanceof ZodNumber) {
+        out[key] = Number(value);
+      } else if (field instanceof ZodBoolean) {
+        out[key] = value === "true" || value === "1";
+      }
     }
-    console.log(data);
-    context.query = data;
+
+    console.log(out);
+
+    context.query = out;
   }
 
   return routeHandler(context);

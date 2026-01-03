@@ -14,6 +14,7 @@ import type { BunRequest, Server } from "bun";
 export class Lyn {
   private routes: Route<any, any, any>[] = [];
   private server: Server<unknown> | null = null;
+  private baseUrl: string | null = null;
 
   get<
     TParamsSchema extends ParamsSchema = undefined,
@@ -74,7 +75,7 @@ export class Lyn {
     this.routes.push(route);
   }
 
-  listen(port: number) {
+  listen(port: number = 0) {
     if (typeof Bun === "undefined")
       throw new Error("Lyn can only be used on Bun");
 
@@ -95,11 +96,20 @@ export class Lyn {
       idleTimeout: 30,
     });
 
+    this.baseUrl = `http://127.0.0.1:${this.server.port}`;
+
     process.on("beforeExit", async () => {
       this.stop();
     });
 
     return this;
+  }
+
+  get url(): string {
+    if (!this.server || !this.baseUrl) {
+      throw new Error("Server is not running. Call listen() first.");
+    }
+    return this.baseUrl;
   }
 
   async stop() {

@@ -27,6 +27,19 @@ new Lyn()
     };
   })
   .get(
+    "/test",
+    ({ query }) => {
+      return query;
+    },
+    {
+      query: z.object({
+        name: z.string(),
+        isAdmin: z.boolean(),
+        age: z.number(),
+      }),
+    }
+  )
+  .get(
     "/users",
     ({ query }) => {
       return {
