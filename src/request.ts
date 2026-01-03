@@ -3,12 +3,14 @@ import {
   LynError,
   NoBodyError,
   NoParamsError,
+  NoQueryError,
   ValidationError,
 } from "#/error";
 import type {
   Context,
   ParamsSchema,
   PotentialAnySchema,
+  QuerySchema,
   Route,
   RouteHandler,
   RouteHandlerBodyResponse,
@@ -89,19 +91,21 @@ export const handleResponse = (
 
 export const handleRequest = async <
   TBodySchema extends PotentialAnySchema,
-  TParamsSchema extends ParamsSchema
+  TParamsSchema extends ParamsSchema,
+  TQuerySchema extends QuerySchema
 >(
   request: BunRequest,
-  routeHandler: RouteHandler<TBodySchema, TParamsSchema>,
+  routeHandler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
   set: SetDefinition,
-  validation?: Validation<TBodySchema, TParamsSchema>
+  validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
 ): Promise<RouteHandlerBodyResponse> => {
-  //@ts-expect-error - We need to assign the body and params to the context later
-  const context: Context<TBodySchema, TParamsSchema> = {
+  //@ts-expect-error - We need to assign the body, params and query to the context later
+  const context: Context<TBodySchema, TParamsSchema, TQuerySchema> = {
     request,
     set,
     body: undefined,
     params: undefined,
+    query: undefined,
   };
 
   // Valifation Step
@@ -133,12 +137,34 @@ export const handleRequest = async <
     }
     context.params = data;
   }
+
+  // Query Validation
+  if (validation?.query) {
+    const searchParams = new URL(request.url).searchParams;
+    if (searchParams.size === 0) {
+      throw new NoQueryError();
+    }
+
+    const query = Object.fromEntries(searchParams);
+    console.log(query);
+    const { error, data } = validation.query.safeParse(query);
+    if (error) {
+      throw new ValidationError(error);
+    }
+    console.log(data);
+    context.query = data;
+  }
+
   return routeHandler(context);
 };
 
 export const handleError = (error: LynError): Response => {
   return new Response(
-    JSON.stringify({ code: error.code, message: error.message }),
+    JSON.stringify({
+      code: error.code,
+      message: error.message,
+      cause: error.cause,
+    }),
     {
       status: error.status,
     }

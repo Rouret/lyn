@@ -3,6 +3,7 @@ import type {
   BunRoutes,
   ParamsSchema,
   PotentialAnySchema,
+  QuerySchema,
   Route,
   RouteHandler,
   RoutePath,
@@ -11,13 +12,16 @@ import type {
 import type { BunRequest, Server } from "bun";
 
 export class Lyn {
-  private routes: Route<any, any>[] = [];
+  private routes: Route<any, any, any>[] = [];
   private server: Server<unknown> | null = null;
 
-  get<TParamsSchema extends ParamsSchema = undefined>(
+  get<
+    TParamsSchema extends ParamsSchema = undefined,
+    TQuerySchema extends QuerySchema = undefined
+  >(
     path: RoutePath,
-    handler: RouteHandler<undefined, TParamsSchema>,
-    validation?: Validation<undefined, TParamsSchema>
+    handler: RouteHandler<undefined, TParamsSchema, TQuerySchema>,
+    validation?: Validation<undefined, TParamsSchema, TQuerySchema>
   ) {
     this.addRoute({ path, handler, validation: validation, method: "GET" });
     return this;
@@ -25,11 +29,12 @@ export class Lyn {
 
   post<
     TBodySchema extends PotentialAnySchema = undefined,
-    TParamsSchema extends ParamsSchema = undefined
+    TParamsSchema extends ParamsSchema = undefined,
+    TQuerySchema extends QuerySchema = undefined
   >(
     path: RoutePath,
-    handler: RouteHandler<TBodySchema, TParamsSchema>,
-    validation?: Validation<TBodySchema, TParamsSchema>
+    handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
+    validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
   ) {
     this.addRoute({ path, handler, validation, method: "POST" });
     return this;
@@ -37,11 +42,12 @@ export class Lyn {
 
   delete<
     TBodySchema extends PotentialAnySchema = undefined,
-    TParamsSchema extends ParamsSchema = undefined
+    TParamsSchema extends ParamsSchema = undefined,
+    TQuerySchema extends QuerySchema = undefined
   >(
     path: RoutePath,
-    handler: RouteHandler<TBodySchema, TParamsSchema>,
-    validation?: Validation<TBodySchema, TParamsSchema>
+    handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
+    validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
   ) {
     this.addRoute({ path, handler, validation, method: "DELETE" });
     return this;
@@ -49,17 +55,18 @@ export class Lyn {
 
   put<
     TBodySchema extends PotentialAnySchema = undefined,
-    TParamsSchema extends ParamsSchema = undefined
+    TParamsSchema extends ParamsSchema = undefined,
+    TQuerySchema extends QuerySchema = undefined
   >(
     path: RoutePath,
-    handler: RouteHandler<TBodySchema, TParamsSchema>,
-    validation?: Validation<TBodySchema, TParamsSchema>
+    handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
+    validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
   ) {
     this.addRoute({ path, handler, validation, method: "PUT" });
     return this;
   }
 
-  private addRoute(route: Route<any, any>) {
+  private addRoute(route: Route<any, any, any>) {
     if (route.path === "") {
       this.stop();
       throw new Error("Route path cannot be empty");

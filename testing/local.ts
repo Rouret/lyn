@@ -1,15 +1,46 @@
 import z from "zod";
 import { Lyn } from "../src";
 
+type User = {
+  email: string;
+  username: string;
+};
+
+const fakeUsers: User[] = [
+  {
+    email: "john@doe.com",
+    username: "john_doe",
+  },
+  {
+    email: "jane@doe.com",
+    username: "jane_doe",
+  },
+];
+
 new Lyn()
   .get("/text", () => {
     return "Hello World";
   })
   .get("/json", () => {
     return {
-      message: "Hello World",
+      users: fakeUsers,
     };
   })
+  .get(
+    "/users",
+    ({ query }) => {
+      return {
+        users: fakeUsers.filter((user) =>
+          user.username.includes(query.username)
+        ),
+      };
+    },
+    {
+      query: z.object({
+        username: z.string(),
+      }),
+    }
+  )
   .get(
     "/:name",
     ({ params }) => {

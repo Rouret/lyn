@@ -79,7 +79,8 @@ new Lyn()
 - [x] Request lifecycle
 - [x] Body validation
 - [x] Params validation
-- [ ] Search params validation
+- [x] Query validation
+- [ ] Handler function for tests ?
 - [ ] Optimize the request lifecycle with ghost objects
 - [ ] Add a logger
 - Do a Security Checklist

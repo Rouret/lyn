@@ -31,7 +31,26 @@ export type BodyContext<TSchema extends PotentialAnySchema> =
 
 type ParamPrimitive = z.ZodString | z.ZodNumber | z.ZodBoolean;
 type ParamLeaf = ParamPrimitive | z.ZodArray<ParamPrimitive>;
+
+type QueryPrimitive =
+  | z.ZodString
+  | z.ZodNumber
+  | z.ZodBoolean
+  | z.ZodOptional<z.ZodString>
+  | z.ZodOptional<z.ZodNumber>
+  | z.ZodOptional<z.ZodBoolean>;
+
 export type ParamsSchema = z.ZodObject<Record<string, ParamLeaf>> | undefined;
+export type QuerySchema =
+  | z.ZodObject<Record<string, QueryPrimitive>>
+  | undefined;
+
+export type QueryContext<TSchema extends QuerySchema> =
+  TSchema extends QuerySchema
+    ? {
+        query: z.infer<TSchema>;
+      }
+    : {};
 
 export type ParamsContext<TSchema extends ParamsSchema> =
   TSchema extends ParamsSchema
@@ -42,8 +61,10 @@ export type ParamsContext<TSchema extends ParamsSchema> =
 
 export type Context<
   TBodySchema extends PotentialAnySchema,
-  TParamsSchema extends ParamsSchema
+  TParamsSchema extends ParamsSchema,
+  TQuerySchema extends QuerySchema
 > = BodyContext<TBodySchema> &
+  QueryContext<TQuerySchema> &
   ParamsContext<TParamsSchema> & {
     request: BunRequest;
     set: SetDefinition;
@@ -51,25 +72,31 @@ export type Context<
 
 export type Validation<
   TBodySchema extends PotentialAnySchema = undefined,
-  TParamsSchema extends PotentialAnySchema = undefined
+  TParamsSchema extends ParamsSchema = undefined,
+  TQuerySchema extends QuerySchema = undefined
 > = {
   body?: TBodySchema;
   params?: TParamsSchema;
+  query?: TQuerySchema;
 };
 export type RouteHandlerBodyResponse = string | object | null;
 export type RouteHandler<
   TBodySchema extends PotentialAnySchema = undefined,
-  TParamsSchema extends ParamsSchema = undefined
-> = (ctx: Context<TBodySchema, TParamsSchema>) => RouteHandlerBodyResponse;
+  TParamsSchema extends ParamsSchema = undefined,
+  TQuerySchema extends QuerySchema = undefined
+> = (
+  ctx: Context<TBodySchema, TParamsSchema, TQuerySchema>
+) => RouteHandlerBodyResponse;
 
 export type RoutePath = string;
 export type Route<
   TBodySchema extends PotentialAnySchema = undefined,
-  TParamsSchema extends ParamsSchema = undefined
+  TParamsSchema extends ParamsSchema = undefined,
+  TQuerySchema extends QuerySchema = undefined
 > = {
   path: RoutePath;
-  handler: RouteHandler<TBodySchema, TParamsSchema>;
-  validation?: Validation<TBodySchema, TParamsSchema>;
+  handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>;
+  validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>;
   method: LynSupportedMethods;
 };
 

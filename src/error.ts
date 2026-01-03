@@ -5,8 +5,9 @@ export class LynError extends Error {
   status: number;
   isLynError: boolean;
 
-  constructor(code: string, status: number, message: string, cause?: Error) {
-    super(message, { cause });
+  constructor(code: string, status: number, message: string, cause?: string) {
+    super(message);
+    this.cause = cause;
     this.code = code;
     this.status = status;
     this.isLynError = true;
@@ -15,7 +16,7 @@ export class LynError extends Error {
 
 export class ValidationError extends LynError {
   constructor(cause?: ZodError<any> | undefined) {
-    super("VALIDATION", 400, "Bad Request", cause);
+    super("VALIDATION", 400, "Bad Request", JSON.parse(cause?.message || "{}"));
   }
 }
 
@@ -27,6 +28,12 @@ export class NoBodyError extends LynError {
 export class NoParamsError extends LynError {
   constructor() {
     super("NO_PARAMS", 400, "No params provided");
+  }
+}
+
+export class NoQueryError extends LynError {
+  constructor() {
+    super("NO_QUERY", 400, "No query provided");
   }
 }
 
