@@ -1,3 +1,4 @@
+import { internalLogger, logger } from "#/logger";
 import { handleRequestLifecycle } from "#/request";
 import type {
   BunRoutes,
@@ -11,6 +12,10 @@ import type {
 } from "#/types";
 import type { BunRequest, Server } from "bun";
 import z from "zod";
+import packageJson from "../package.json";
+
+const VERSION = packageJson.version as string;
+const isDev = process.env.NODE_ENV === "development";
 
 class Lyn {
   private routes: Route<any, any, any>[] = [];
@@ -97,6 +102,22 @@ class Lyn {
       idleTimeout: 30,
     });
 
+    console.log(`
+█████                            
+░░███                             
+ ░███        █████ ████ ████████  
+ ░███       ░░███ ░███ ░░███░░███ 
+ ░███        ░███ ░███  ░███ ░███ 
+ ░███      █ ░███ ░███  ░███ ░███ 
+ ███████████ ░░███████  ████ █████
+░░░░░░░░░░░   ░░░░░███ ░░░░ ░░░░░ 
+              ███ ░███            
+             ░░██████             
+              ░░░░░░      v${VERSION}        
+              `);
+
+    internalLogger.info(`Server is running on port ${this.server.port}`);
+
     this.baseUrl = `http://127.0.0.1:${this.server.port}`;
 
     process.on("beforeExit", async () => {
@@ -121,4 +142,4 @@ class Lyn {
   }
 }
 
-export { Lyn, z };
+export { Lyn, z, logger };

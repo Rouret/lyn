@@ -6,6 +6,7 @@ import {
   NoQueryError,
   ValidationError,
 } from "#/error";
+import { internalLogger } from "#/logger";
 import type {
   Context,
   ParamsSchema,
@@ -37,6 +38,10 @@ export const handleRequestLifecycle = async (
       status: getDefaultStatusFromMethod(route.method),
     };
 
+    internalLogger.info(
+      `Handle request: ${request.method} on ${new URL(request.url).pathname}`
+    );
+
     const responseBody = await handleRequest(
       request,
       route.handler,
@@ -44,15 +49,20 @@ export const handleRequestLifecycle = async (
       route.validation
     );
 
-    return handleResponse(responseBody, set.headers, set.status);
+    const response = handleResponse(responseBody, set.headers, set.status);
+    internalLogger.info(
+      `Return response: ${response.status} for ${request.method} on ${
+        new URL(request.url).pathname
+      }`
+    );
+    return response;
   } catch (error: any) {
     // If the error is a LynError, throw it
     if (error["isLynError"]) {
       return handleError(error as LynError);
     }
     // Else, send Internal Server Error and log the error
-    //TODO : LOGGER
-    console.error(error);
+    internalLogger.error(error);
     return handleError(new InternalServerError());
   }
 };
@@ -166,9 +176,6 @@ const handleRequest = async <
         out[key] = value === "true" || value === "1";
       }
     }
-
-    console.log(out);
-
     context.query = out;
   }
 
@@ -176,6 +183,9 @@ const handleRequest = async <
 };
 
 const handleError = (error: LynError): Response => {
+  internalLogger.error(
+    `Handle error: ${error.code} - ${error.message} return status ${error.status}`
+  );
   return new Response(
     JSON.stringify({
       code: error.code,

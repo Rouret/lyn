@@ -86,4 +86,7 @@ new Lyn()
       }),
     }
   )
+  .get("/error", () => {
+    throw new Error("Test error");
+  })
   .listen(3000);

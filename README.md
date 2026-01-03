@@ -27,6 +27,10 @@ Lyn leverages Bun and the best JavaScript libraries for the job.
 
 ### Code example
 
+<img src="terminal.png" alt="Lyn terminal example" />
+
+Code:
+
 ```ts
 new Lyn()
   .get("/text", () => {
@@ -47,6 +51,23 @@ new Lyn()
     {
       params: z.object({
         name: z.string(),
+      }),
+    }
+  )
+  .get(
+    "/test",
+    ({ query }) => {
+      return {
+        message: `Hello ${query.name} ${
+          query.isAdmin ? "is admin" : "is not admin"
+        } and you are ${query.age} years old`,
+      };
+    },
+    {
+      query: z.object({
+        name: z.string(),
+        isAdmin: z.boolean(),
+        age: z.number(),
       }),
     }
   )
@@ -80,7 +101,7 @@ new Lyn()
 - [x] Body validation
 - [x] Params validation
 - [x] Query validation
-- [ ] Add a logger
+- [x] Add a logger
 - [ ] Auth
 - Do a Security Checklist
 
