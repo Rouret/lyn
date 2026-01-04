@@ -102,7 +102,10 @@ new Lyn()
 - [x] Params validation
 - [x] Query validation
 - [x] Add a logger
+- [ ] Environment variables
 - [ ] Auth
+- [ ] Documentation
+- [ ] Publish
 - Do a Security Checklist
 
 ### Contact
