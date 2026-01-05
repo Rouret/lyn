@@ -2,6 +2,7 @@ import { internalLogger, logger } from "#/logger";
 import { handleRequestLifecycle } from "#/request";
 import type {
   BunRoutes,
+  LynConfig,
   ParamsSchema,
   PotentialAnySchema,
   QuerySchema,
@@ -13,14 +14,44 @@ import type {
 import type { BunRequest, Server } from "bun";
 import z from "zod";
 import packageJson from "../package.json";
+import { getEnvConfig, lynEnvConfig, type LynEnv } from "#/env";
 
 const VERSION = packageJson.version as string;
-const isDev = process.env.NODE_ENV === "development";
+
+const DEFAULT_LYN_CONFIG: LynConfig = {
+  start: {
+    hideLynLogo: false,
+  },
+};
 
 class Lyn {
+  public static instance: Lyn | null = null;
   private routes: Route<any, any, any>[] = [];
   private server: Server<unknown> | null = null;
   private baseUrl: string | null = null;
+  private config: LynConfig = DEFAULT_LYN_CONFIG;
+  public envConfig: LynEnv;
+
+  constructor(config: LynConfig = DEFAULT_LYN_CONFIG) {
+    // getEnvConfig exits if env is missing
+    // TODO: create a lyn.config.ts file to store the config
+    this.envConfig = getEnvConfig({
+      ...lynEnvConfig,
+      ...(config.env ?? {}),
+    });
+
+    this.config = {
+      ...DEFAULT_LYN_CONFIG,
+      ...config,
+    };
+
+    internalLogger.info("All environment variables are valid");
+
+    if (Lyn.instance && this.envConfig.env !== "test") {
+      throw new Error("Lyn can only be used once. Use listen() only once.");
+    }
+    Lyn.instance = this;
+  }
 
   get<
     TParamsSchema extends ParamsSchema = undefined,
@@ -102,7 +133,8 @@ class Lyn {
       idleTimeout: 30,
     });
 
-    console.log(`
+    if (!this.config.start?.hideLynLogo) {
+      console.log(`
 █████                            
 ░░███                             
  ░███        █████ ████ ████████  
@@ -115,6 +147,7 @@ class Lyn {
              ░░██████             
               ░░░░░░      v${VERSION}        
               `);
+    }
 
     internalLogger.info(`Server is running on port ${this.server.port}`);
 
@@ -142,4 +175,4 @@ class Lyn {
   }
 }
 
-export { Lyn, z, logger };
+export { logger, Lyn, z };

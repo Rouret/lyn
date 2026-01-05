@@ -1,5 +1,6 @@
 import { Lyn } from "#/index";
 import { afterEach, describe, expect, it } from "bun:test";
+import { TEST_LYN_CONFIG } from "test/constantsTest";
 import { createTestClient } from "testing/utilsTest";
 
 import z from "zod";
@@ -13,7 +14,7 @@ afterEach(async () => {
 
 describe("Post's body validation", () => {
   it("send request and response to the client", async () => {
-    app = new Lyn()
+    app = new Lyn(TEST_LYN_CONFIG)
       .post(
         "/users",
         ({ body }) => {
@@ -39,7 +40,7 @@ describe("Post's body validation", () => {
   });
 
   it("send bad request", async () => {
-    app = new Lyn()
+    app = new Lyn(TEST_LYN_CONFIG)
       .post(
         "/users",
         ({ body }) => {
@@ -64,7 +65,7 @@ describe("Post's body validation", () => {
 
 describe("Params validation", () => {
   it("validate the params", async () => {
-    app = new Lyn()
+    app = new Lyn(TEST_LYN_CONFIG)
       .get(
         "/:name",
         ({ params }) => {
@@ -91,7 +92,7 @@ describe("Params validation", () => {
 
 describe("Query validation", () => {
   it("validate the query", async () => {
-    app = new Lyn()
+    app = new Lyn(TEST_LYN_CONFIG)
       .get(
         "/",
         ({ query }) => {

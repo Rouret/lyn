@@ -1,4 +1,6 @@
+import type { EnvConfig } from "#/env";
 import type { BunRequest } from "bun";
+
 import z, { ZodType } from "zod";
 
 /* HTTP */
@@ -13,6 +15,28 @@ const LYN_SUPPORTED_METHODS = {
 export type LynSupportedMethods = keyof typeof LYN_SUPPORTED_METHODS;
 
 /* Core */
+
+export type LynConfig = {
+  /**
+   * Environment variables configuration. If not provided, Lyn will use the default environment variables configuration
+   * @example
+   * new Lyn({
+   *   env: {
+   *     databaseUser: {
+   *       name: "DATABASE_USER",
+   *       type: "string",
+   *     },
+   *   },
+   * })
+   */
+  env?: EnvConfig;
+  start?: {
+    /**
+     * Remove the beautiful ascii art logo when the server starts
+     */
+    hideLynLogo?: boolean;
+  };
+};
 
 export type SetDefinition = {
   headers: Headers;

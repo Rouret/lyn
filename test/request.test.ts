@@ -1,5 +1,7 @@
 import { Lyn } from "#/index";
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { TEST_LYN_CONFIG } from "test/constantsTest";
+import { setupValidEnv } from "test/utilsTest";
 import { createTestClient } from "testing/utilsTest";
 
 import z from "zod";
@@ -10,10 +12,13 @@ afterEach(async () => {
   await app?.stop();
   app = null;
 });
+beforeAll(() => {
+  setupValidEnv();
+});
 
 describe("Content type", () => {
   it("should return application/json for JSON response", async () => {
-    app = new Lyn()
+    app = new Lyn(TEST_LYN_CONFIG)
       .get("/json", () => {
         return { message: "Hello World" };
       })
@@ -34,7 +39,7 @@ describe("Content type", () => {
 
 describe("Handle Error", () => {
   it("should return application/json for JSON response", async () => {
-    app = new Lyn()
+    app = new Lyn(TEST_LYN_CONFIG)
       .post(
         "/users",
         ({ body }) => {

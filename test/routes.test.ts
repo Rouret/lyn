@@ -1,10 +1,11 @@
 import { Lyn } from "#/index";
 import { test, expect, spyOn, describe } from "bun:test";
+import { TEST_LYN_CONFIG } from "test/constantsTest";
 
 describe("routes", () => {
   test("routes are registered correctly", async () => {
     const spy = spyOn(Bun, "serve");
-    const app = new Lyn()
+    const app = new Lyn(TEST_LYN_CONFIG)
       .get("/", () => {
         return "Hello World";
       })
