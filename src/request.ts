@@ -91,11 +91,17 @@ const handleResponse = (
   status: number
 ): Response => {
   const contentType = getContentTypeFromBodyResponse(bodyResponse);
-  const payload = handleFormattedBody(bodyResponse);
 
   headers.set("Content-Type", contentType);
 
-  return new Response(payload, {
+  if (contentType === "application/json") {
+    return Response.json(bodyResponse, {
+      headers: headers,
+      status: status,
+    });
+  }
+
+  return new Response(handleFormattedBody(bodyResponse), {
     headers: headers,
     status: status,
   });

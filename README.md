@@ -103,6 +103,7 @@ new Lyn()
 - [x] Query validation
 - [x] Add a logger
 - [x] Environment variables
+- [ ] Example Project
 - [ ] Auth
 - [ ] Documentation
 - [ ] Publish
