@@ -154,6 +154,7 @@ class Lyn {
     this.baseUrl = `http://127.0.0.1:${this.server.port}`;
 
     process.on("beforeExit", async () => {
+      internalLogger.warn("Server is shutting down");
       this.stop();
     });
 
