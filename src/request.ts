@@ -79,7 +79,7 @@ const handleFormattedBody = (
 const getContentTypeFromBodyResponse = (
   bodyResponse: RouteHandlerBodyResponse
 ): string => {
-  if (typeof bodyResponse === "string") {
+  if (typeof bodyResponse === "string") { 
     return "text/plain";
   }
   return "application/json";
@@ -93,6 +93,8 @@ const handleResponse = (
   const contentType = getContentTypeFromBodyResponse(bodyResponse);
 
   headers.set("Content-Type", contentType);
+  //TODO: CORS headers
+  headers.set("Access-Control-Allow-Origin", "*");
 
   if (contentType === "application/json") {
     return Response.json(bodyResponse, {

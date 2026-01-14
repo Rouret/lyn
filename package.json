@@ -25,7 +25,7 @@
   "scripts": {
     "dev": "bun --hot run testing/local.ts",
     "deadcode": "knip",
-    "test": "NODE_ENV=test bun test"
+    "test": "NODE_ENV=lyn-test bun test"
   },
   "devDependencies": {
     "@types/bun": "latest",

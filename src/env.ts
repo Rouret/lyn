@@ -9,13 +9,7 @@ type EnvConfigItem = {
 /* We create this to avoid user to use the z.ZodString | z.ZodCoercedNumber | typeof zBooleanFromEnv type */
 type EnvType = "string" | "number" | "boolean";
 
-type EnvNames =
-  | "databaseUser"
-  | "databasePassword"
-  | "databaseHost"
-  | "databasePort"
-  | "databaseName"
-  | "env";
+type EnvNames = "env";
 
 export type EnvConfig = Record<string, EnvConfigItem>;
 type InternalEnvConfig = Record<EnvNames, EnvConfigItem>;
@@ -42,26 +36,6 @@ const getZodTypeFromEnvType = (type: EnvType) => {
 export const lynEnvConfig: InternalEnvConfig = {
   env: {
     name: "NODE_ENV",
-    type: "string",
-  },
-  databaseUser: {
-    name: "DATABASE_USER",
-    type: "string",
-  },
-  databasePassword: {
-    name: "DATABASE_PASSWORD",
-    type: "string",
-  },
-  databaseHost: {
-    name: "DATABASE_HOST",
-    type: "string",
-  },
-  databasePort: {
-    name: "DATABASE_PORT",
-    type: "number",
-  },
-  databaseName: {
-    name: "DATABASE_NAME",
     type: "string",
   },
 };

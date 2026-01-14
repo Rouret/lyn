@@ -7,6 +7,7 @@ export const logger = pino({
 });
 
 export const internalLogger = pino({
+  enabled: process.env.NODE_ENV !== "lyn-test",
   transport: {
     target: "pino-pretty",
     options: {
