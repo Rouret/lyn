@@ -29,5 +29,6 @@
     "paths": {
       "#/*": ["./src/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "examples"]
 }

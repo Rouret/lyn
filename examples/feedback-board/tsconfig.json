@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "types": ["bun"],
+    // TODO(lyn): Lyn has no `exports` map and its `#/` alias doesn't
+    // resolve for consumers, so the example points at Lyn's sources.
+    "paths": {
+      "@rouret/lyn": ["../../src/index.ts"],
+      "@rouret/lyn/db": ["../../src/db.ts"],
+      "#/*": ["../../src/*"]
+    }
+  }
+}

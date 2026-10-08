@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: feedback
+      POSTGRES_PASSWORD: feedback
+      POSTGRES_DB: feedback_board
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedback -d feedback_board"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  postgres-test:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: feedback
+      POSTGRES_PASSWORD: feedback
+      POSTGRES_DB: feedback_board_test
+    ports:
+      - "5434:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedback -d feedback_board_test"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres:
