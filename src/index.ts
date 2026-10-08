@@ -14,30 +14,36 @@ import type {
 import type { Server } from "bun";
 import z from "zod";
 import packageJson from "../package.json";
-import { getEnvConfig, LynEnvError, lynEnvConfig, type LynEnv } from "#/env";
+import {
+  LynEnvError,
+  lynEnvConfig,
+  parseEnv,
+  type EnvConfig,
+  type LynEnv,
+} from "#/env";
 import { applyCors, assertValidCorsConfig } from "#/cors";
 
 const VERSION = packageJson.version as string;
 
-const DEFAULT_LYN_CONFIG: LynConfig = {
+const DEFAULT_LYN_CONFIG: Pick<LynConfig, "start"> = {
   start: {
     hideLynLogo: false,
   },
 };
 
-class Lyn {
+class Lyn<TEnvConfig extends EnvConfig = {}> {
   private router = createRouter();
   private server: Server<unknown> | null = null;
   private baseUrl: string | null = null;
-  private config: LynConfig = DEFAULT_LYN_CONFIG;
-  public envConfig: LynEnv;
+  private config: LynConfig<TEnvConfig>;
+  public readonly env: LynEnv<TEnvConfig>;
 
-  constructor(config: LynConfig = DEFAULT_LYN_CONFIG) {
+  constructor(config: LynConfig<TEnvConfig> = {}) {
     // TODO: create a lyn.config.ts file to store the config
-    this.envConfig = getEnvConfig({
+    this.env = parseEnv({
       ...lynEnvConfig,
-      ...(config.env ?? {}),
-    });
+      ...config.env,
+    }) as LynEnv<TEnvConfig>;
 
     this.config = {
       ...DEFAULT_LYN_CONFIG,

@@ -1,17 +1,23 @@
 import z from "zod";
 
-type EnvConfigItem = {
+type EnvType = "string" | "number" | "boolean";
+
+type EnvVariable = {
   name: string;
   type: EnvType;
 };
 
-/* We create this to avoid user to use the z.ZodString | z.ZodCoercedNumber | typeof zBooleanFromEnv type */
-type EnvType = "string" | "number" | "boolean";
+export type EnvConfig = Record<string, EnvVariable>;
 
-type EnvNames = "env";
+type EnvValue<TType extends EnvType> = TType extends "number"
+  ? number
+  : TType extends "boolean"
+    ? boolean
+    : string;
 
-export type EnvConfig = Record<string, EnvConfigItem>;
-type InternalEnvConfig = Record<EnvNames, EnvConfigItem>;
+type InferEnv<TConfig extends EnvConfig> = {
+  [Key in keyof TConfig]: EnvValue<TConfig[Key]["type"]>;
+};
 
 const isBlank = (value: string | undefined) =>
   value === undefined || value.trim() === "";
@@ -39,17 +45,18 @@ export class LynEnvError extends Error {
   }
 }
 
-export const lynEnvConfig: InternalEnvConfig = {
-  env: {
-    name: "NODE_ENV",
-    type: "string",
-  },
-};
+export const lynEnvConfig = {
+  nodeEnv: { name: "NODE_ENV", type: "string" },
+} as const satisfies EnvConfig;
 
-export type LynEnv = Record<EnvNames, string | number | boolean>;
+export type LynEnv<TEnvConfig extends EnvConfig = {}> = InferEnv<
+  typeof lynEnvConfig & TEnvConfig
+>;
 
-export const getEnvConfig = (config: InternalEnvConfig): LynEnv => {
-  const env: Partial<LynEnv> = {};
+export const parseEnv = <TConfig extends EnvConfig>(
+  config: TConfig
+): InferEnv<TConfig> => {
+  const env: Record<string, unknown> = {};
   const problems: string[] = [];
 
   for (const [key, { name, type }] of Object.entries(config)) {
@@ -66,9 +73,9 @@ export const getEnvConfig = (config: InternalEnvConfig): LynEnv => {
       continue;
     }
 
-    env[key as EnvNames] = data as LynEnv[EnvNames];
+    env[key] = data;
   }
 
   if (problems.length > 0) throw new LynEnvError(problems);
-  return env as LynEnv;
+  return env as InferEnv<TConfig>;
 };

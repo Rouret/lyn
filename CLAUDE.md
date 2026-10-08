@@ -153,11 +153,13 @@ is passed. Allowed schema shapes:
 ### Env (`src/env.ts`)
 
 `new Lyn({ env: { key: { name: "ENV_NAME", type: "string" | "number" | "boolean" } } })`
-is merged with the built-in `{ env: { name: "NODE_ENV", type: "string" } }`.
+is merged with the built-in `{ nodeEnv: { name: "NODE_ENV", type: "string" } }`.
 All variables are parsed from `Bun.env`; blank values count as missing; any
 failure throws one `LynEnvError` listing `NAME: missing` / `NAME: expected …`
-(never the value — it may be a secret). The library never calls `process.exit`. Result is on `app.envConfig` (typed as `LynEnv`, which only
-knows the `env` key — user keys are present at runtime but untyped).
+(never the value — it may be a secret). The library never calls `process.exit`.
+`Lyn<TEnvConfig>` is generic over the config, so the result on `app.env` is
+typed: `LynEnv<TEnvConfig>` maps `type` to `string | number | boolean` and
+includes the built-in `nodeEnv` key.
 
 ## Known gaps and pitfalls
 

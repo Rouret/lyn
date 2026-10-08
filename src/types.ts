@@ -16,20 +16,14 @@ export type LynSupportedMethods = keyof typeof LYN_SUPPORTED_METHODS;
 
 /* Core */
 
-export type LynConfig = {
+export type LynConfig<TEnvConfig extends EnvConfig = {}> = {
   /**
-   * Environment variables configuration. If not provided, Lyn will use the default environment variables configuration
+   * Environment variables to load and check at startup, in addition to
+   * NODE_ENV. Parsed values are typed on `app.env`.
    * @example
-   * new Lyn({
-   *   env: {
-   *     databaseUser: {
-   *       name: "DATABASE_USER",
-   *       type: "string",
-   *     },
-   *   },
-   * })
+   * new Lyn({ env: { port: { name: "PORT", type: "number" } } }).env.port // number
    */
-  env?: EnvConfig;
+  env?: TEnvConfig;
   /**
    * Cross-origin requests from browsers. Disabled when omitted: no CORS
    * header is sent and only same-origin pages can call the API.

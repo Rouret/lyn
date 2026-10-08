@@ -1,4 +1,4 @@
-import { getEnvConfig, LynEnvError, lynEnvConfig } from "#/env";
+import { parseEnv, LynEnvError, lynEnvConfig } from "#/env";
 import { Lyn } from "#/index";
 import { describe, it, expect, spyOn } from "bun:test";
 
@@ -27,16 +27,16 @@ const configWith = (type: "string" | "number" | "boolean") =>
     value: { name: "LYN_TEST_VALUE", type },
   }) as typeof lynEnvConfig;
 
-describe("getEnvConfig", () => {
+describe("parseEnv", () => {
   it("returns parsed env config when all variables are valid", () => {
     withEnv({ NODE_ENV: "staging" }, () => {
-      expect(getEnvConfig(lynEnvConfig)).toEqual({ env: "staging" });
+      expect(parseEnv(lynEnvConfig)).toEqual({ nodeEnv: "staging" });
     });
   });
 
   it("throws a LynEnvError listing missing and invalid variables", () => {
     withEnv({ NODE_ENV: undefined, LYN_TEST_VALUE: "abc" }, () => {
-      const parse = () => getEnvConfig(configWith("number"));
+      const parse = () => parseEnv(configWith("number"));
 
       expect(parse).toThrow(LynEnvError);
       expect(parse).toThrow(
@@ -49,7 +49,7 @@ describe("getEnvConfig", () => {
 
   it("never includes the rejected value in the error", () => {
     withEnv({ LYN_TEST_VALUE: "s3cr3t-token" }, () => {
-      expect(() => getEnvConfig(configWith("boolean"))).toThrow(
+      expect(() => parseEnv(configWith("boolean"))).toThrow(
         expect.objectContaining({
           message: expect.not.stringContaining("s3cr3t-token"),
         })
@@ -78,7 +78,7 @@ describe("getEnvConfig", () => {
     ["an empty boolean", "boolean", ""],
   ] as const)("reports %s as missing", (_, type, rawValue) => {
     withEnv({ LYN_TEST_VALUE: rawValue }, () => {
-      expect(() => getEnvConfig(configWith(type))).toThrow(
+      expect(() => parseEnv(configWith(type))).toThrow(
         "  - LYN_TEST_VALUE: missing"
       );
     });
@@ -89,7 +89,7 @@ describe("getEnvConfig", () => {
     ["boolean", "yes", "expected true, false, 1 or 0"],
   ] as const)("reports an invalid %s", (type, rawValue, reason) => {
     withEnv({ LYN_TEST_VALUE: rawValue }, () => {
-      expect(() => getEnvConfig(configWith(type))).toThrow(
+      expect(() => parseEnv(configWith(type))).toThrow(
         `  - LYN_TEST_VALUE: ${reason}`
       );
     });
@@ -102,7 +102,7 @@ describe("getEnvConfig", () => {
     ["boolean", "0", false],
   ] as const)("parses a valid %s (%p)", (type, rawValue, expected) => {
     withEnv({ LYN_TEST_VALUE: rawValue }, () => {
-      expect(getEnvConfig(configWith(type))).toMatchObject({
+      expect(parseEnv(configWith(type))).toMatchObject({
         value: expected,
       });
     });

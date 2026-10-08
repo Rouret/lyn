@@ -52,7 +52,7 @@ try {
 
 | Key   | Variable   | Type     | Required |
 | ----- | ---------- | -------- | -------- |
-| `env` | `NODE_ENV` | `string` | yes      |
+| `nodeEnv` | `NODE_ENV` | `string` | yes      |
 
 ### Declaring your own
 
@@ -81,19 +81,21 @@ counts as missing, so it can't silently become `0` or `""`. Bun loads `.env`, `.
 
 ### Reading the values
 
-Parsed values are available on `app.envConfig`:
+Parsed values are available on `app.env`, typed from your config:
 
 ```ts
-app.envConfig.env;  // value of NODE_ENV
+const app = new Lyn({
+  env: {
+    port: { name: "PORT", type: "number" },
+    debug: { name: "DEBUG", type: "boolean" },
+  },
+});
 
-const { port, databaseUrl } = app.envConfig as unknown as {
-  port: number;
-  databaseUrl: string;
-};
+app.env.port;     // number
+app.env.debug;    // boolean
+app.env.nodeEnv;  // string, value of NODE_ENV
+app.env.other;    // type error: not declared
 ```
-
-Your own keys are present at runtime, but `envConfig` is only typed with the
-built-in `env` key for now, hence the cast.
 
 ## CORS
 
@@ -157,6 +159,5 @@ import { logger } from "lyn";
 ## Limitations
 
 - No optional variables or default values for env entries.
-- `envConfig` is not typed with your custom keys.
 - Log level and transport are not configurable.
 - A `lyn.config.ts` file is planned; configuration is constructor-only today.
