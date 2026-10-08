@@ -146,16 +146,49 @@ describe("listen", () => {
     }
   });
 
-  it("does not accumulate exit listeners across restarts", async () => {
-    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok");
-    const listenersBefore = process.listenerCount("beforeExit");
+  it("does not accumulate signal listeners across restarts or apps", async () => {
+    const first = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok");
+    const second = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok");
+    const countListeners = () => ({
+      SIGINT: process.listenerCount("SIGINT"),
+      SIGTERM: process.listenerCount("SIGTERM"),
+    });
+    const before = countListeners();
 
     for (let restart = 0; restart < 3; restart++) {
-      await app.listen();
-      expect(process.listenerCount("beforeExit")).toBe(listenersBefore + 1);
-      await app.stop();
+      await Promise.all([first.listen(), second.listen()]);
+      expect(countListeners()).toEqual({
+        SIGINT: before.SIGINT + 1,
+        SIGTERM: before.SIGTERM + 1,
+      });
+      await Promise.all([first.stop(), second.stop()]);
     }
 
-    expect(process.listenerCount("beforeExit")).toBe(listenersBefore);
+    expect(countListeners()).toEqual(before);
   });
+
+  it.each(["SIGINT", "SIGTERM"] as const)(
+    "stops the app, then exits, on %s",
+    async (signal) => {
+      const child = Bun.spawn(["bun", "test/fixtures/signal-app.ts"], {
+        env: { ...Bun.env, NODE_ENV: "lyn-test" },
+        stdout: "pipe",
+      });
+      const chunks = child.stdout.pipeThrough(new TextDecoderStream()).getReader();
+      let output = "";
+      while (!output.includes("ready")) {
+        const { value, done } = await chunks.read();
+        if (done) break;
+        output += value;
+      }
+
+      child.kill(signal);
+      for (let chunk = await chunks.read(); !chunk.done; chunk = await chunks.read())
+        output += chunk.value;
+      await child.exited;
+
+      expect(output).toContain("stopped");
+      expect(child.signalCode).toBe(signal);
+    }
+  );
 });

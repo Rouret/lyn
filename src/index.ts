@@ -19,6 +19,7 @@ import { internalLogger, logger } from "#/logger";
 import { handleRouteMatch } from "#/request";
 import { logRequest, resolveRequestId } from "#/request-log";
 import { createRouter } from "#/router";
+import { forgetOnShutdownSignal, stopOnShutdownSignal } from "#/shutdown";
 import type {
   LynConfig,
   ParamsSchema,
@@ -244,7 +245,7 @@ class Lyn<
 
     this.baseUrl = `http://127.0.0.1:${this.server.port}`;
 
-    process.on("beforeExit", this.stopOnExit);
+    stopOnShutdownSignal(this);
 
     return this;
   }
@@ -256,13 +257,8 @@ class Lyn<
     return this.baseUrl;
   }
 
-  private stopOnExit = () => {
-    internalLogger.warn("Server is shutting down");
-    this.stop();
-  };
-
   async stop() {
-    process.off("beforeExit", this.stopOnExit);
+    forgetOnShutdownSignal(this);
     if (this.server) {
       await this.server.stop();
       this.server = null;

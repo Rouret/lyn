@@ -100,7 +100,10 @@ await app.stop();
   [database connection](../integrations/database.md#startup-and-shutdown),
   then starts serving. Without a port, Bun picks a free one.
 - `stop()` stops the server and closes the database connection. Lyn also
-  calls it when the process is about to exit.
+  calls it when the process receives `SIGINT` (Ctrl+C) or `SIGTERM`
+  (`docker stop`, Kubernetes), then lets the process exit. If your code
+  listens to that signal too, Lyn still stops the app but leaves the exit
+  to you.
 - `handle(request)` runs a standard `Request` through the app and returns
   the `Response`, without a server. The server uses it for every request,
   so the behaviour is identical. See [Testing](../guides/testing.md).

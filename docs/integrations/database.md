@@ -54,7 +54,7 @@ That's all. Lyn:
   and refuses to start if it is missing;
 - creates the Drizzle instance from your schema;
 - checks the connection before `listen()` starts serving;
-- closes the connection on `stop()`.
+- closes the connection on `stop()`, `SIGINT` and `SIGTERM`.
 
 ## `db` is plain Drizzle
 

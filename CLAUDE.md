@@ -83,6 +83,7 @@ src/
   params.ts    parseParams: coerceValue on router params, safeParse
   body.ts      readJsonBody: NO_BODY, JSON content type (415), JSON.parse (INVALID_JSON)
   request-log.ts  resolveRequestId (safe incoming X-Request-Id or UUID), logRequest (level by status)
+  shutdown.ts  one shared SIGINT/SIGTERM listener: stops every running app, then re-raises the signal
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, throws LynEnvError on invalid/missing
@@ -121,8 +122,11 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 - `url` getter throws if `listen()` has not been called.
 - `listen()` rejects while `starting` or `running`; a failed `onStart` resets
   the status to `stopped`. `stop()` stops the server, runs `onStop` in reverse
-  feature order (closes the pool) and detaches the `beforeExit` listener
-  (`stopOnExit`) so restarts don't accumulate listeners.
+  feature order (closes the pool) and unregisters the app from
+  `src/shutdown.ts`. `listen()` registers it: one shared `SIGINT`/`SIGTERM`
+  listener exists while at least one app runs; on a signal it detaches,
+  `stop()`s every app (errors logged), then re-raises the signal so the
+  process exits as usual, unless the user has their own listener for it.
 - Any number of `Lyn` instances may coexist (no singleton).
 
 ### Router (`src/router.ts`)
