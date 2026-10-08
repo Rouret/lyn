@@ -68,7 +68,6 @@ src/
   lib/auth.ts  better-auth stub, not imported anywhere yet
 test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG)
 testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built on app.handle)
-test.ts        scratch Bun.serve file, not part of the framework
 docs/          user documentation
 ```
 

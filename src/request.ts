@@ -25,10 +25,13 @@ import type { RouteMatch } from "#/router";
 import { getDefaultStatusFromMethod } from "#/utils";
 import type { ZodSafeParseResult } from "zod";
 
-/*        | ---------handleRequestLifecycle----------|
- Request -> handleRequest -> handler -> handleResponse -> Response
-                 | (on error)                          |
-                  -> handleError ----------------------
+/*
+ Request -> handleRouteMatch -> 404 / 405 / OPTIONS ---------------------> Response
+                    |                                                   ^
+                    -> handleRequestLifecycle:                          |
+                         handleRequest -> handler -> handleResponse ----|
+                           | (on error)                                 |
+                           -> handleError ------------------------------
  */
 export const handleRouteMatch = (
   request: Request,
