@@ -12,9 +12,6 @@ const app = new Lyn({
     origin: ["https://app.example.com"],
   },
   database: { schema },
-  start: {
-    hideLynLogo: true,
-  },
 });
 ```
 
