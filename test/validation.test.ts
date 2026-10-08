@@ -201,4 +201,34 @@ describe("Query validation", () => {
       isAdmin: true,
     });
   });
+
+  it("does not define optional fields that were not sent", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get(
+      "/",
+      ({ query }) => ({ hasPage: "page" in query }),
+      { query: z.object({ name: z.string(), page: z.number().optional() }) }
+    );
+
+    const response = await createTestClient(app).get("/?name=Jo");
+
+    expect(await response.json()).toEqual({ hasPage: false });
+  });
+
+  it("accepts an empty query when every field is optional", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", ({ query }) => query, {
+      query: z.object({ page: z.number().optional() }),
+    });
+
+    const response = await createTestClient(app).get("/");
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({});
+  });
+
+  it("reports every missing required field when the query is empty", async () => {
+    const response = await createTestClient(searchApp()).get("/search");
+
+    expect(response.status).toBe(400);
+    expect(await issuePaths(response)).toEqual(["name", "age", "isAdmin"]);
+  });
 });

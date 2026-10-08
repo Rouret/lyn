@@ -99,13 +99,15 @@ apply.
 
 | Situation                                         | Response            |
 | ------------------------------------------------- | ------------------- |
-| No query string at all                            | `400` `NO_QUERY`    |
 | Required key missing                              | `400` `VALIDATION`  |
 | Value of the wrong type (`?age=abc`, `?isAdmin=yes`) | `400` `VALIDATION` |
 | Key sent several times (`?tag=a&tag=b`)           | `400` `VALIDATION`  |
 | Refinement fails (`.min(2)`, `.int()`…)           | `400` `VALIDATION`  |
 
-`.optional()` fields are present in `query` when sent and absent otherwise.
+An empty query string is validated like any other: it passes when every
+field is optional (`query` is `{}`) and lists every missing required field
+otherwise. `.optional()` fields are present in `query` when sent and absent
+otherwise (`"page" in query` is `false`).
 Keys that are not in the schema are ignored.
 
 ## Limitations

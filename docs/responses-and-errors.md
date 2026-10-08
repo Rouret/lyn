@@ -65,7 +65,6 @@ When something goes wrong, Lyn answers with a JSON body:
 | `VALIDATION`             | 400    | body or params fail their schema; `cause` holds the Zod issues |
 | `NO_BODY`                | 400    | a body schema exists but no body was sent   |
 | `NO_PARAMS`              | 400    | a params schema exists but the route has no params |
-| `NO_QUERY`               | 400    | a query schema exists but no query string was sent |
 | `NOT_FOUND`              | 404    | no route matches the path                   |
 | `METHOD_NOT_ALLOWED`     | 405    | the path exists but not for this method; `Allow` header lists valid methods |
 | `INTERNAL_SERVER_ERROR`  | 500    | any other error thrown by your handler      |

@@ -39,12 +39,6 @@ export class NoParamsError extends LynError {
   }
 }
 
-export class NoQueryError extends LynError {
-  constructor() {
-    super("NO_QUERY", 400, "No query provided");
-  }
-}
-
 export class NotFoundError extends LynError {
   constructor(method: string, pathname: string) {
     super("NOT_FOUND", 404, `Route ${method} ${pathname} not found`);

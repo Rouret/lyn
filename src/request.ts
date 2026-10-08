@@ -6,7 +6,6 @@ import {
   NoBodyError,
   NotFoundError,
   NoParamsError,
-  NoQueryError,
   ValidationError,
 } from "#/error";
 import { internalLogger } from "#/logger";
@@ -185,11 +184,7 @@ const handleRequest = async <
 
   // Query Validation
   if (validation?.query) {
-    const searchParams = new URL(request.url).searchParams;
-    if (searchParams.size === 0) {
-      throw new NoQueryError();
-    }
-
+    const { searchParams } = new URL(request.url);
     const { error, data } = parseQuery(searchParams, validation.query);
     if (error) {
       throw new ValidationError(error);

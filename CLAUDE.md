@@ -56,7 +56,7 @@ src/
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, exits(1) on invalid/missing
-  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, NO_PARAMS, NO_QUERY, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
+  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, NO_PARAMS, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
   logger.ts    `logger` (for users) and `internalLogger` (prefixed "[Lyn]")
   utils.ts     getDefaultStatusFromMethod
   lib/auth.ts  better-auth stub, not imported anywhere yet
@@ -111,7 +111,7 @@ handleRequestLifecycle
   └─ handleRequest
        body   → requires request.body, request.body.json(), schema.safeParse  → NO_BODY / VALIDATION
        params → requires ≥1 param, schema.safeParse(router params)           → NO_PARAMS / VALIDATION
-       query  → requires ≥1 search param, parseQuery: coerce per field, safeParse → NO_QUERY / VALIDATION
+       query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
        return handler(context)   (awaited, so async handlers work)
   └─ handleResponse: string → text/plain, anything else → Response.json
        always sets Content-Type and Access-Control-Allow-Origin: *
