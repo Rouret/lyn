@@ -180,6 +180,79 @@ Treat these as current behaviour. Fix them only when asked, and update
 - Use Bun APIs over Node equivalents (`Bun.env`, `Bun.serve`, `Bun.file`, `bun:test`).
 - `knip` must stay clean: no unused exports/files in `src/`.
 
+## Comments
+
+Good developers rarely write comments because they write explicit code.
+Before writing a comment, try to make it unnecessary: rename, extract a
+well-named function, restructure. Comments do not make up for bad code.
+
+### ✅ Good reasons to comment
+
+- **The why.** Explain a choice the code cannot express, and invite a refactor
+  if someone finds better:
+  ```ts
+  // We had to write this because the browser treats everything as a box.
+  // If you find a better way, don't hesitate to refactor it.
+  ```
+  ```ts
+  compareTo(o) {
+    if (o instanceof WikiPage) { ... }
+    return 1; // we are greater because we are the right type
+  }
+  ```
+- **Intent and importance.** Amplify something a reader could underestimate:
+  `// this is really important because ...`
+- **What humans don't read easily.** Regexes, non-obvious return contracts:
+  `a.compareTo(b) // 0 means a === b`
+- **Different backgrounds.** Readers may not share your context or opinions;
+  a short note can bridge that.
+- **Chapters.** Short headings that structure a long file:
+  `// shaders`, `// textures`.
+- **A guide while writing.** Scaffold the logic step by step, then **remove
+  these comments as you code**. This includes TODOs, deleted once done.
+  ```ts
+  // get the request from the server
+  // return the error if it failed
+  // format the data
+  ```
+- **Known debt, OK to refactor.**
+  `// not my best work, but we had to ship it by the deadline`
+- **Teaching.** When the code is meant to train people or is read by
+  external contributors.
+- **External sources.** Link the Stack Overflow post / issue / spec the
+  solution comes from, so a better answer can replace it later.
+- **Warning of consequences.**
+  `// Don't run unless you have some time to kill`,
+  `// Not thread safe: create each instance independently`
+
+### ❌ Bad comments
+
+- **Saying what the code already says.**
+  ```ts
+  // if foo equals bar then
+  if (foo === bar) {}
+  // Default constructor
+  constructor() {}
+  ```
+  No JSDoc on every method: only when needed to understand what it does.
+- **Unmaintained comments** that no longer match the code after it changed.
+- **Commented-out code.** Delete it; Git keeps the history.
+  ```ts
+  method1();
+  // method2();
+  method3();
+  ```
+- **Compensating for a bad name.** Names must say what a variable holds or a
+  function does.
+- **Explaining bad code** instead of improving it.
+- **Misleading comments.** Misinformation is worse than no comment; keep
+  comments clear, concise and true.
+- **Journal comments.** No change logs in the code; that's what commit
+  messages are for.
+
+When you touch a file, apply these rules to the comments you meet: delete
+the bad ones, and check that the good ones are still true.
+
 ## Testing
 
 - Framework: `bun:test`. Files are `test/*.test.ts`.
