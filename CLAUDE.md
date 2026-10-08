@@ -61,7 +61,8 @@ src/
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, throws LynEnvError on invalid/missing
   error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
-  logger.ts    `logger` (for users) and `internalLogger` (prefixed "[Lyn]")
+  logger.ts    one pino root `logger` (exported) + `internalLogger` child (msgPrefix "[Lyn] ");
+               options from env: JSON in production, pino-pretty otherwise, LOG_LEVEL, silent in lyn-test
   utils.ts     getDefaultStatusFromMethod
   lib/auth.ts  better-auth stub, not imported anywhere yet
 test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG)
@@ -171,8 +172,6 @@ Treat these as current behaviour. Fix them only when asked, and update
 - `ValidationError` does `JSON.parse(zodError.message)`; relies on Zod 4's
   message format.
 - `DELETE` defaults to 204, so a returned body is dropped by the runtime.
-- `pino` / `pino-pretty` are `devDependencies` but imported at runtime by
-  `src/logger.ts` — must move to `dependencies` before publishing.
 
 ## Conventions
 

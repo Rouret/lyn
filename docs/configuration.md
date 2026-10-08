@@ -140,12 +140,19 @@ new Lyn({
 
 ## Logging
 
-Lyn uses [pino](https://getpino.io) with `pino-pretty`.
+Lyn uses [pino](https://getpino.io). Logging is configured with environment
+variables, read when Lyn is imported:
 
-- **Internal logs** (prefixed `[Lyn]`): startup, every request
-  (`Handle request: GET on /users`), every response status, every error.
-  They are disabled when `NODE_ENV=lyn-test`.
-- **Your logs**: use the exported `logger`.
+| Variable    | Effect                                                          |
+| ----------- | --------------------------------------------------------------- |
+| `NODE_ENV`  | `production` → one JSON object per line, ready for log collectors. Anything else → human-readable output via `pino-pretty`. |
+| `LOG_LEVEL` | `fatal`, `error`, `warn`, `info` (default), `debug`, `trace` or `silent`. Any other value throws a `LynEnvError`. |
+
+- **Internal logs** are prefixed `[Lyn]`: startup, requests, errors.
+- **Your logs**: use the exported `logger`. It shares the same level and
+  output as Lyn's logs.
+- All logs are disabled when `NODE_ENV=lyn-test`, the value used by Lyn's
+  own test suite.
 
 ```ts
 import { logger } from "lyn";
@@ -159,5 +166,5 @@ import { logger } from "lyn";
 ## Limitations
 
 - No optional variables or default values for env entries.
-- Log level and transport are not configurable.
+- Log output can't be redirected to a custom destination yet.
 - A `lyn.config.ts` file is planned; configuration is constructor-only today.

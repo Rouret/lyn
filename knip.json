@@ -9,5 +9,8 @@
   ],
   "tags": [
     "-lintignore"
+  ],
+  "ignoreDependencies": [
+    "pino-pretty"
   ]
 }
