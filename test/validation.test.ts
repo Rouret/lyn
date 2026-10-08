@@ -79,6 +79,56 @@ describe("Params validation", () => {
       message: "Hello John",
     });
   });
+
+  const postApp = () =>
+    new Lyn(TEST_LYN_CONFIG).get(
+      "/users/:userId/posts/:slug",
+      ({ params }) => ({ params, userIdType: typeof params.userId }),
+      {
+        params: z.object({
+          userId: z.number().int().positive(),
+          slug: z.string(),
+        }),
+      }
+    );
+
+  const issuePaths = async (response: Response) =>
+    ((await response.json()) as { cause: { path: string[] }[] }).cause.map(
+      (issue) => issue.path.join(".")
+    );
+
+  it("converts numeric params to numbers", async () => {
+    const response = await createTestClient(postApp()).get(
+      "/users/42/posts/007"
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      params: { userId: 42, slug: "007" },
+      userIdType: "number",
+    });
+  });
+
+  it("rejects a non-numeric value for a numeric param", async () => {
+    const response = await createTestClient(postApp()).get(
+      "/users/abc/posts/hello"
+    );
+
+    expect(response.status).toBe(400);
+    expect(await issuePaths(response)).toEqual(["userId"]);
+  });
+
+  it.each(["4.5", "-4"])(
+    "applies refinements on numeric params (userId=%s)",
+    async (userId) => {
+      const response = await createTestClient(postApp()).get(
+        `/users/${userId}/posts/hello`
+      );
+
+      expect(response.status).toBe(400);
+      expect(await issuePaths(response)).toEqual(["userId"]);
+    }
+  );
 });
 
 describe("Query validation", () => {

@@ -53,7 +53,6 @@ export type BodyContext<TSchema extends PotentialAnySchema> =
     : {};
 
 type ParamPrimitive = z.ZodString | z.ZodNumber;
-type ParamLeaf = ParamPrimitive | z.ZodArray<ParamPrimitive>;
 
 type QueryPrimitive =
   | z.ZodString
@@ -63,7 +62,7 @@ type QueryPrimitive =
   | z.ZodOptional<z.ZodNumber>
   | z.ZodOptional<z.ZodBoolean>;
 
-export type ParamsSchema = z.ZodObject<Record<string, ParamLeaf>> | undefined;
+export type ParamsSchema = z.ZodObject<Record<string, ParamPrimitive>> | undefined;
 export type QuerySchema =
   | z.ZodObject<Record<string, QueryPrimitive>>
   | undefined;

@@ -52,23 +52,24 @@ Body schemas are not available on `.get()`.
 
 ## Params
 
-The schema must be a `z.object` whose fields are `z.string()`, `z.number()` or
-arrays of those. It is run with `safeParse` against Bun's route params.
+The schema must be a `z.object` whose fields are `z.string()` or
+`z.number()`. Path params arrive as strings: `z.number()` fields are
+converted with `Number(value)` first, then the object is validated with
+`safeParse`, so refinements such as `.int()` or `.positive()` apply.
 
 ```ts
-.get("/posts/:slug", ({ params }) => getPost(params.slug), {
-  params: z.object({ slug: z.string().min(3) }),
+.get("/users/:userId/posts/:slug", ({ params }) => getPost(params.userId, params.slug), {
+  params: z.object({
+    userId: z.number().int().positive(), // "42" → 42
+    slug: z.string().min(3),             // "007" stays "007"
+  }),
 })
 ```
 
 | Situation                          | Response              |
 | ---------------------------------- | --------------------- |
 | Route has no params                | `400` `NO_PARAMS`     |
-| Params do not match the schema     | `400` `VALIDATION`    |
-
-> Path params always arrive as strings and are **not coerced**. A
-> `z.number()` param will always fail validation. Declare `z.string()` and
-> convert in the handler (`Number(params.id)`).
+| Params do not match the schema (`/users/abc`, `/users/4.5` with `.int()`) | `400` `VALIDATION` |
 
 ## Query
 
@@ -115,4 +116,3 @@ Keys that are not in the schema are ignored.
 - No validation for headers or cookies yet.
 - No validation of the response body.
 - Query fields cannot be arrays yet; a repeated key is rejected.
-- See the note above about params coercion.

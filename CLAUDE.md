@@ -52,7 +52,9 @@ Requires Bun `>= 1.3.6` (`engines` in `package.json`).
 src/
   index.ts     Lyn class (route builder, handle, listen/stop/url), public exports: Lyn, z, logger
   router.ts    Segment trie: path validation, matching, params extraction
-  query.ts     parseQuery: reads schema keys from URLSearchParams, coerces number/boolean, safeParse
+  coerce.ts    coerceValue: string → number/boolean according to the zod field (unwraps .optional())
+  query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
+  params.ts    parseParams: coerceValue on router params, safeParse
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, exits(1) on invalid/missing
@@ -110,7 +112,7 @@ handleRequestLifecycle
   └─ set = { headers: new Headers(), status: default for method }
   └─ handleRequest
        body   → requires request.body, request.body.json(), schema.safeParse  → NO_BODY / VALIDATION
-       params → requires ≥1 param, schema.safeParse(router params)           → NO_PARAMS / VALIDATION
+       params → requires ≥1 param, parseParams: coerce per field, safeParse   → NO_PARAMS / VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
        return handler(context)   (awaited, so async handlers work)
   └─ handleResponse: string → text/plain, anything else → Response.json
@@ -131,7 +133,7 @@ Generics default to `undefined`, so `ctx.body` only exists when a body schema
 is passed. Allowed schema shapes:
 
 - body: any `ZodType`
-- params: `z.object` of `ZodString | ZodNumber | ZodArray<those>`
+- params: `z.object` of `ZodString | ZodNumber`
 - query: `z.object` of `ZodString | ZodNumber | ZodBoolean` (optionally `.optional()`)
 
 ### Env (`src/env.ts`)
@@ -147,8 +149,6 @@ knows the `env` key — user keys are present at runtime but untyped).
 Treat these as current behaviour. Fix them only when asked, and update
 `docs/` and this file when you do.
 
-- **Params are not coerced.** A `z.number()` param always fails with
-  `VALIDATION` because Bun gives strings.
 - Error responses lack the CORS header. `OPTIONS` returns `Allow` only, no CORS preflight headers.
 - `LynError` is not exported from `src/index.ts`; any thrown object with
   `isLynError: true` is treated as one (duck-typed).

@@ -20,6 +20,7 @@ import type {
   SetDefinition,
   Validation,
 } from "#/types";
+import { parseParams } from "#/params";
 import { parseQuery } from "#/query";
 import type { RouteMatch } from "#/router";
 import { getDefaultStatusFromMethod } from "#/utils";
@@ -175,7 +176,7 @@ const handleRequest = async <
       throw new NoParamsError();
     }
 
-    const { error, data } = validation.params.safeParse(params);
+    const { error, data } = parseParams(params, validation.params);
     if (error) {
       throw new ValidationError(error);
     }
