@@ -1,9 +1,11 @@
+import type { LynSupportedMethods } from "#/types";
 import type { ZodError } from "zod";
 
 export class LynError extends Error {
   code: string;
   status: number;
   isLynError: boolean;
+  headers: Headers = new Headers();
 
   constructor(code: string, status: number, message: string, cause?: string) {
     super(message);
@@ -34,6 +36,27 @@ export class NoParamsError extends LynError {
 export class NoQueryError extends LynError {
   constructor() {
     super("NO_QUERY", 400, "No query provided");
+  }
+}
+
+export class NotFoundError extends LynError {
+  constructor(method: string, pathname: string) {
+    super("NOT_FOUND", 404, `Route ${method} ${pathname} not found`);
+  }
+}
+
+export class MethodNotAllowedError extends LynError {
+  constructor(
+    method: string,
+    pathname: string,
+    allowedMethods: LynSupportedMethods[]
+  ) {
+    super(
+      "METHOD_NOT_ALLOWED",
+      405,
+      `Method ${method} not allowed on ${pathname}`
+    );
+    this.headers.set("Allow", allowedMethods.join(", "));
   }
 }
 

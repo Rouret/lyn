@@ -1,5 +1,4 @@
 import type { EnvConfig } from "#/env";
-import type { BunRequest } from "bun";
 
 import z, { ZodType } from "zod";
 
@@ -92,7 +91,7 @@ export type Context<
 > = BodyContext<TBodySchema> &
   QueryContext<TQuerySchema> &
   ParamsContext<TParamsSchema> & {
-    request: BunRequest;
+    request: Request;
     set: SetDefinition;
   };
 
@@ -125,11 +124,3 @@ export type Route<
   validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>;
   method: LynSupportedMethods;
 };
-
-/* Bun Routes */
-type BunMethodHandler = (request: BunRequest) => Promise<Response>;
-
-export type BunRoutes = Record<
-  string,
-  Partial<Record<LynSupportedMethods, BunMethodHandler>>
->;

@@ -1,7 +1,9 @@
 import {
   InternalServerError,
   LynError,
+  MethodNotAllowedError,
   NoBodyError,
+  NotFoundError,
   NoParamsError,
   NoQueryError,
   ValidationError,
@@ -19,18 +21,42 @@ import type {
   SetDefinition,
   Validation,
 } from "#/types";
+import type { RouteMatch } from "#/router";
 import { getDefaultStatusFromMethod } from "#/utils";
-import type { BunRequest } from "bun";
-import { record, ZodBoolean, ZodNumber, ZodString } from "zod";
+import { ZodBoolean, ZodNumber, ZodString } from "zod";
 
 /*        | ---------handleRequestLifecycle----------|
  Request -> handleRequest -> handler -> handleResponse -> Response
                  | (on error)                          |
                   -> handleError ----------------------
  */
-export const handleRequestLifecycle = async (
-  request: BunRequest,
-  route: Route
+export const handleRouteMatch = (
+  request: Request,
+  pathname: string,
+  match: RouteMatch
+): Promise<Response> | Response => {
+  switch (match.status) {
+    case "found":
+      return handleRequestLifecycle(request, match.route, match.params);
+    case "method_not_allowed":
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: { Allow: [...match.allowedMethods, "OPTIONS"].join(", ") },
+        });
+      }
+      return handleError(
+        new MethodNotAllowedError(request.method, pathname, match.allowedMethods)
+      );
+    case "not_found":
+      return handleError(new NotFoundError(request.method, pathname));
+  }
+};
+
+const handleRequestLifecycle = async (
+  request: Request,
+  route: Route,
+  params: Record<string, string>
 ): Promise<Response> => {
   try {
     const set: SetDefinition = {
@@ -44,6 +70,7 @@ export const handleRequestLifecycle = async (
 
     const responseBody = await handleRequest(
       request,
+      params,
       route.handler,
       set,
       route.validation
@@ -114,7 +141,8 @@ const handleRequest = async <
   TParamsSchema extends ParamsSchema,
   TQuerySchema extends QuerySchema
 >(
-  request: BunRequest,
+  request: Request,
+  params: Record<string, string>,
   routeHandler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
   set: SetDefinition,
   validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
@@ -146,11 +174,10 @@ const handleRequest = async <
 
   // Params Validation
   if (validation?.params) {
-    if (Object.keys(request.params).length === 0) {
+    if (Object.keys(params).length === 0) {
       throw new NoParamsError();
     }
 
-    const params = request.params;
     const { error, data } = validation.params.safeParse(params);
     if (error) {
       throw new ValidationError(error);
@@ -194,14 +221,15 @@ const handleError = (error: LynError): Response => {
   internalLogger.error(
     `Handle error: ${error.code} - ${error.message} return status ${error.status}`
   );
-  return new Response(
-    JSON.stringify({
+  return Response.json(
+    {
       code: error.code,
       message: error.message,
       cause: error.cause,
-    }),
+    },
     {
       status: error.status,
+      headers: error.headers,
     }
   );
 };

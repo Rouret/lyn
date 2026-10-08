@@ -1,28 +1,19 @@
-import { handleRequestLifecycle } from "#/request";
-import type { Route } from "#/types";
-import type { BunRequest } from "bun";
+import { Lyn } from "#/index";
 import { expect, test } from "bun:test";
-import { requestFactory } from "testing/utilsTest";
+import { TEST_LYN_CONFIG } from "test/constantsTest";
+import { createTestClient } from "testing/utilsTest";
 
 test("set", async () => {
-  const request = requestFactory.get("/");
-  const fakeRoute: Route = {
-    path: "/",
-    handler: ({ set }) => {
-      set.status = 201;
-      set.headers.set("X-Custom-Header", "custom-value");
-      return {
-        message: "Hello World",
-      };
-    },
-    validation: undefined,
-    method: "GET",
-  };
+  const app = new Lyn(TEST_LYN_CONFIG).get("/", ({ set }) => {
+    set.status = 201;
+    set.headers.set("X-Custom-Header", "custom-value");
+    return {
+      message: "Hello World",
+    };
+  });
 
-  const response = await handleRequestLifecycle(
-    request as BunRequest,
-    fakeRoute
-  );
+  const response = await createTestClient(app).get("/");
+
   expect(response.status).toBe(201);
   expect(response.headers.get("x-custom-header")).toBe("custom-value");
 });

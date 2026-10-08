@@ -1,20 +1,14 @@
 import { Lyn } from "#/index";
-import { afterEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import { createTestClient } from "testing/utilsTest";
 
 import z from "zod";
 
-let app: Lyn | null = null;
-
-afterEach(async () => {
-  await app?.stop();
-  app = null;
-});
 
 describe("Post's body validation", () => {
   it("send request and response to the client", async () => {
-    app = new Lyn(TEST_LYN_CONFIG)
+    const app = new Lyn(TEST_LYN_CONFIG)
       .post(
         "/users",
         ({ body }) => {
@@ -27,8 +21,7 @@ describe("Post's body validation", () => {
             name: z.string(),
           }),
         }
-      )
-      .listen();
+      );
     const client = createTestClient(app);
 
     const response = await client.post("/users", { name: "John" });
@@ -40,7 +33,7 @@ describe("Post's body validation", () => {
   });
 
   it("send bad request", async () => {
-    app = new Lyn(TEST_LYN_CONFIG)
+    const app = new Lyn(TEST_LYN_CONFIG)
       .post(
         "/users",
         ({ body }) => {
@@ -53,8 +46,7 @@ describe("Post's body validation", () => {
             name: z.string(),
           }),
         }
-      )
-      .listen();
+      );
     const client = createTestClient(app);
 
     const response = await client.post("/users", { badKey: "John" });
@@ -65,7 +57,7 @@ describe("Post's body validation", () => {
 
 describe("Params validation", () => {
   it("validate the params", async () => {
-    app = new Lyn(TEST_LYN_CONFIG)
+    const app = new Lyn(TEST_LYN_CONFIG)
       .get(
         "/:name",
         ({ params }) => {
@@ -78,8 +70,7 @@ describe("Params validation", () => {
             name: z.string(),
           }),
         }
-      )
-      .listen();
+      );
     const client = createTestClient(app);
 
     const response = await client.get("/John");
@@ -92,7 +83,7 @@ describe("Params validation", () => {
 
 describe("Query validation", () => {
   it("validate the query", async () => {
-    app = new Lyn(TEST_LYN_CONFIG)
+    const app = new Lyn(TEST_LYN_CONFIG)
       .get(
         "/",
         ({ query }) => {
@@ -105,8 +96,7 @@ describe("Query validation", () => {
             age: z.number(),
           }),
         }
-      )
-      .listen();
+      );
 
     const client = createTestClient(app);
 

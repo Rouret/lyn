@@ -1,7 +1,7 @@
 import { internalLogger, logger } from "#/logger";
-import { handleRequestLifecycle } from "#/request";
+import { handleRouteMatch } from "#/request";
+import { createRouter } from "#/router";
 import type {
-  BunRoutes,
   LynConfig,
   ParamsSchema,
   PotentialAnySchema,
@@ -11,7 +11,7 @@ import type {
   RoutePath,
   Validation,
 } from "#/types";
-import type { BunRequest, Server } from "bun";
+import type { Server } from "bun";
 import z from "zod";
 import packageJson from "../package.json";
 import { getEnvConfig, lynEnvConfig, type LynEnv } from "#/env";
@@ -25,8 +25,7 @@ const DEFAULT_LYN_CONFIG: LynConfig = {
 };
 
 class Lyn {
-  public static instance: Lyn | null = null;
-  private routes: Route<any, any, any>[] = [];
+  private router = createRouter();
   private server: Server<unknown> | null = null;
   private baseUrl: string | null = null;
   private config: LynConfig = DEFAULT_LYN_CONFIG;
@@ -46,11 +45,6 @@ class Lyn {
     };
 
     internalLogger.info("All environment variables are valid");
-
-    if (Lyn.instance && this.envConfig.env !== "test") {
-      throw new Error("Lyn can only be used once. Use listen() only once.");
-    }
-    Lyn.instance = this;
   }
 
   get<
@@ -105,31 +99,25 @@ class Lyn {
   }
 
   private addRoute(route: Route<any, any, any>) {
-    if (route.path === "") {
-      this.stop();
-      throw new Error("Route path cannot be empty");
-    }
-    this.routes.push(route);
+    this.router.add(route);
+  }
+
+  handle(request: Request): Promise<Response> | Response {
+    const { pathname } = new URL(request.url);
+    return handleRouteMatch(
+      request,
+      pathname,
+      this.router.match(request.method, pathname)
+    );
   }
 
   listen(port: number = 0) {
     if (typeof Bun === "undefined")
       throw new Error("Lyn can only be used on Bun");
 
-    const bunRoutes: BunRoutes = this.routes.reduce((acc, route) => {
-      const handler = async (request: BunRequest): Promise<Response> =>
-        handleRequestLifecycle(request, route);
-
-      acc[route.path] ??= {};
-
-      acc[route.path]![route.method] = handler;
-
-      return acc;
-    }, {} as BunRoutes);
-
     this.server = Bun.serve({
       port,
-      routes: bunRoutes,
+      fetch: (request) => this.handle(request),
       idleTimeout: 30,
     });
 
