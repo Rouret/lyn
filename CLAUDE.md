@@ -102,7 +102,6 @@ src/
                options from env: JSON in production, pino-pretty otherwise, LOG_LEVEL, silent in lyn-test
   http-status.ts  HTTP_STATUS (named status codes), isClientError, isServerError
   utils.ts     getDefaultStatusFromMethod
-  lib/auth.ts  better-auth stub, not imported anywhere yet
 test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG) + fixtures/ (Drizzle schema, SQL)
 testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built on app.handle)
 scripts/build.ts  `bun run build`: Bun.build + tsc (tsconfig.build.json) → dist/
@@ -492,5 +491,5 @@ the bad ones, and check that the good ones are still true.
 
 Done: routes, lifecycle, body/params/query validation, logger, env vars,
 CORS, Postgres with Drizzle, documentation, CLI and migrations.
-Todo: auth (better-auth, see `src/lib/auth.ts`), example
+Todo: auth (better-auth on top of the database), example
 project, security checklist, publish.
