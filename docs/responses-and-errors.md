@@ -63,7 +63,9 @@ When something goes wrong, Lyn answers with a JSON body:
 | `code`                   | Status | When                                        |
 | ------------------------ | ------ | ------------------------------------------- |
 | `VALIDATION`             | 400    | body or params fail their schema; `cause` holds the Zod issues |
-| `NO_BODY`                | 400    | a body schema exists but no body was sent   |
+| `NO_BODY`                | 400    | a body schema exists but no body, or an empty body, was sent |
+| `INVALID_JSON`           | 400    | the body is not valid JSON                  |
+| `UNSUPPORTED_MEDIA_TYPE` | 415    | a body schema exists but the `Content-Type` is missing or not JSON |
 | `NOT_FOUND`              | 404    | no route matches the path                   |
 | `METHOD_NOT_ALLOWED`     | 405    | the path exists but not for this method; `Allow` header lists valid methods |
 | `INTERNAL_SERVER_ERROR`  | 500    | any other error thrown by your handler      |

@@ -3,7 +3,6 @@ import {
   isLynError,
   LynError,
   MethodNotAllowedError,
-  NoBodyError,
   NotFoundError,
   ValidationError,
 } from "#/error";
@@ -19,6 +18,7 @@ import type {
   SetDefinition,
   Validation,
 } from "#/types";
+import { readJsonBody } from "#/body";
 import { parseParams } from "#/params";
 import { parseQuery } from "#/query";
 import type { RouteMatch } from "#/router";
@@ -156,11 +156,7 @@ const handleRequest = async <
   // Valifation Step
   // Body Validation
   if (validation?.body) {
-    if (!request.body) {
-      throw new NoBodyError();
-    }
-
-    const body = await request.body.json();
+    const body = await readJsonBody(request);
     const { error, data } = validation.body.safeParse(body);
     if (error) {
       throw new ValidationError(error);

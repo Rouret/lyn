@@ -55,6 +55,83 @@ describe("Post's body validation", () => {
   });
 });
 
+describe("Body parsing", () => {
+  const userApp = () =>
+    new Lyn(TEST_LYN_CONFIG).post("/users", ({ body }) => body, {
+      body: z.object({ name: z.string() }),
+    });
+
+  const postRaw = (body: string | undefined, contentType?: string) =>
+    userApp().handle(
+      new Request("http://lyn.test/users", {
+        method: "POST",
+        body,
+        headers: contentType ? { "Content-Type": contentType } : {},
+      })
+    );
+
+  const errorCode = async (response: Response) =>
+    ((await response.json()) as { code: string }).code;
+
+  it.each([
+    "application/json",
+    "application/json; charset=utf-8",
+    "Application/JSON",
+    "application/merge-patch+json",
+  ])("accepts the %s content type", async (contentType) => {
+    const response = await postRaw('{"name":"Ada"}', contentType);
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({ name: "Ada" });
+  });
+
+  it("returns 400 NO_BODY when the body is empty", async () => {
+    const response = await postRaw("", "application/json");
+
+    expect(response.status).toBe(400);
+    expect(await errorCode(response)).toBe("NO_BODY");
+  });
+
+  it.each([
+    ["text/plain", "text/plain"],
+    ["a form", "application/x-www-form-urlencoded"],
+    ["a lookalike", "application/jsonp"],
+  ])(
+    "returns 415 UNSUPPORTED_MEDIA_TYPE for %s",
+    async (_, contentType) => {
+      const response = await postRaw('{"name":"Ada"}', contentType);
+
+      expect(response.status).toBe(415);
+      expect(await response.json()).toEqual({
+        code: "UNSUPPORTED_MEDIA_TYPE",
+        message: `Unsupported content type: ${contentType}, expected application/json`,
+      });
+    }
+  );
+
+  it("returns 415 when the content type header is missing", async () => {
+    const request = new Request("http://lyn.test/users", {
+      method: "POST",
+      body: new Blob(['{"name":"Ada"}']),
+    });
+
+    const response = await userApp().handle(request);
+
+    expect(response.status).toBe(415);
+    expect(await errorCode(response)).toBe("UNSUPPORTED_MEDIA_TYPE");
+  });
+
+  it("returns 400 INVALID_JSON for a malformed body", async () => {
+    const response = await postRaw('{"name":', "application/json");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      code: "INVALID_JSON",
+      message: "Request body is not valid JSON",
+    });
+  });
+});
+
 describe("Params validation", () => {
   it("validate the params", async () => {
     const app = new Lyn(TEST_LYN_CONFIG)

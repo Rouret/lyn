@@ -30,8 +30,11 @@ stops the request and returns a `400` error (format in
 
 ## Body
 
-Any Zod schema is accepted. The body is read as JSON and parsed with
-`schema.safeParse`, so transforms, defaults and refinements all apply.
+Any Zod schema is accepted. The body must be sent as JSON: the request needs
+a `Content-Type` of `application/json` (parameters such as `; charset=utf-8`
+are fine) or any `+json` type such as `application/merge-patch+json`. The
+body is then parsed and validated with `schema.safeParse`, so transforms,
+defaults and refinements all apply.
 
 ```ts
 .post("/users", ({ body }) => body, {
@@ -42,11 +45,21 @@ Any Zod schema is accepted. The body is read as JSON and parsed with
 })
 ```
 
-| Situation                         | Response                    |
-| --------------------------------- | --------------------------- |
-| No body sent                      | `400` `NO_BODY`             |
-| Body does not match the schema    | `400` `VALIDATION` with Zod issues in `cause` |
-| Body is not valid JSON            | `500` `INTERNAL_SERVER_ERROR` |
+Checks run in this order:
+
+| Situation                                         | Response                         |
+| ------------------------------------------------- | -------------------------------- |
+| No body, or an empty body                         | `400` `NO_BODY`                  |
+| `Content-Type` missing or not JSON                | `415` `UNSUPPORTED_MEDIA_TYPE`   |
+| Body is not valid JSON                            | `400` `INVALID_JSON`             |
+| Body does not match the schema                    | `400` `VALIDATION` with Zod issues in `cause` |
+
+Clients must send the header. With curl, `-d` alone sends
+`application/x-www-form-urlencoded` and gets a `415`:
+
+```bash
+curl -H "Content-Type: application/json" -d '{"name":"Ada"}' localhost:3000/users
+```
 
 Body schemas are not available on `.get()`.
 

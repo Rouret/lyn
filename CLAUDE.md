@@ -55,10 +55,11 @@ src/
   coerce.ts    coerceValue: string → number/boolean according to the zod field (unwraps .optional())
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
   params.ts    parseParams: coerceValue on router params, safeParse
+  body.ts      readJsonBody: NO_BODY, JSON content type (415), JSON.parse (INVALID_JSON)
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, exits(1) on invalid/missing
-  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
+  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
   logger.ts    `logger` (for users) and `internalLogger` (prefixed "[Lyn]")
   utils.ts     getDefaultStatusFromMethod
   lib/auth.ts  better-auth stub, not imported anywhere yet
@@ -111,7 +112,7 @@ handleRouteMatch(request, pathname, match)
 handleRequestLifecycle
   └─ set = { headers: new Headers(), status: default for method }
   └─ handleRequest
-       body   → requires request.body, request.body.json(), schema.safeParse  → NO_BODY / VALIDATION
+       body   → readJsonBody: body? JSON content type? JSON.parse, safeParse  → NO_BODY / UNSUPPORTED_MEDIA_TYPE / INVALID_JSON / VALIDATION
        params → parseParams: coerce per field, safeParse                       → VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
        return handler(context)   (awaited, so async handlers work)
@@ -154,7 +155,6 @@ Treat these as current behaviour. Fix them only when asked, and update
   `isLynError: true` is treated as one (duck-typed).
 - `ValidationError` does `JSON.parse(zodError.message)`; relies on Zod 4's
   message format.
-- Invalid JSON body → `request.body.json()` throws → 500, not 400.
 - `DELETE` defaults to 204, so a returned body is dropped by the runtime.
 - CORS is hard-coded to `*` (TODO in code).
 - `pino` / `pino-pretty` are `devDependencies` but imported at runtime by

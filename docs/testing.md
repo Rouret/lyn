@@ -22,6 +22,7 @@ it("creates a user", async () => {
   const response = await app.handle(
     new Request("http://localhost/users", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Ada" }),
     })
   );
@@ -34,6 +35,7 @@ it("rejects an invalid body", async () => {
   const response = await app.handle(
     new Request("http://localhost/users", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nope: true }),
     })
   );
@@ -56,7 +58,7 @@ body matter. You can build one app per test or share one across a file.
 ## Test client helper
 
 The repository contains a small helper in `testing/utilsTest.ts` that wraps
-`handle` and JSON-encodes bodies:
+`handle`, JSON-encodes bodies and sets `Content-Type: application/json`:
 
 ```ts
 import { createTestClient } from "./testing/utilsTest";

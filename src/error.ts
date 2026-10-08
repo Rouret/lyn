@@ -33,6 +33,22 @@ export class NoBodyError extends LynError {
     super("NO_BODY", 400, "No body provided");
   }
 }
+export class UnsupportedMediaTypeError extends LynError {
+  constructor(contentType: string) {
+    super(
+      "UNSUPPORTED_MEDIA_TYPE",
+      415,
+      `Unsupported content type: ${contentType || "none"}, expected application/json`
+    );
+  }
+}
+
+export class InvalidJsonError extends LynError {
+  constructor() {
+    super("INVALID_JSON", 400, "Request body is not valid JSON");
+  }
+}
+
 export class NotFoundError extends LynError {
   constructor(method: string, pathname: string) {
     super("NOT_FOUND", 404, `Route ${method} ${pathname} not found`);

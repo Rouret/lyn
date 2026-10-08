@@ -4,13 +4,19 @@ type HandlesRequests = {
 
 const TEST_ORIGIN = "http://lyn.test";
 
-const toJsonBody = (body: unknown) =>
-  body !== undefined ? JSON.stringify(body) : undefined;
+const toJsonRequestInit = (method: string, body: unknown): RequestInit =>
+  body === undefined
+    ? { method }
+    : {
+        method,
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+      };
 
 export const createTestClient = (app: HandlesRequests) => {
   const send = async (method: string, path: string, body?: unknown) =>
     app.handle(
-      new Request(`${TEST_ORIGIN}${path}`, { method, body: toJsonBody(body) })
+      new Request(`${TEST_ORIGIN}${path}`, toJsonRequestInit(method, body))
     );
 
   return {
