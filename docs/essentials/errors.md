@@ -28,12 +28,13 @@ Every error Lyn sends has the same JSON shape:
 
 | Code | Status | When |
 | --- | --- | --- |
-| `VALIDATION` | `400` | The body, params or query don't match their schema |
+| `VALIDATION` | `400` | The body, params or query don't match their schema, or a database query got a missing or malformed value |
 | `NO_BODY` | `400` | A body schema is declared, but no body was sent |
 | `INVALID_JSON` | `400` | The body is not valid JSON |
 | `UNSUPPORTED_MEDIA_TYPE` | `415` | A body schema is declared, but the `Content-Type` is not JSON |
 | `NOT_FOUND` | `404` | No route has this path |
 | `METHOD_NOT_ALLOWED` | `405` | The path exists, but not for this method. The `Allow` header lists the valid ones |
+| `CONFLICT` | `409` | A database query broke a unique or foreign key constraint. See [Database errors](../integrations/database.md#database-errors) |
 | `INTERNAL_SERVER_ERROR` | `500` | Your handler threw an unexpected error |
 
 ## Unexpected errors

@@ -6,3 +6,10 @@ export const CREATE_USERS_TABLE = `
     created_at timestamp not null default now()
   )
 `;
+
+export const CREATE_POSTS_TABLE = `
+  create table posts (
+    id serial primary key,
+    author_id uuid not null references users(id)
+  )
+`;

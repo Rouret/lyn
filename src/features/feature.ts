@@ -1,4 +1,5 @@
 import type { EnvConfig, LynEnv } from "#/env";
+import type { LynError } from "#/error";
 import type { LynConfig } from "#/types";
 
 export type Feature = {
@@ -6,6 +7,7 @@ export type Feature = {
   onStart?: () => Promise<void>;
   onStop?: () => Promise<void>;
   onResponse?: (request: Request, response: Response) => Response;
+  mapError?: (error: unknown) => LynError | undefined;
 };
 
 type FeatureEnv = {

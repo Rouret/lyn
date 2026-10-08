@@ -148,6 +148,41 @@ create a new Lyn instance to connect again`.
 The connection is opened on the first query, so `app.handle()` works
 without `listen()`, which is handy in tests.
 
+## Database errors
+
+When a query in a handler fails, Lyn turns the common Postgres errors into
+client errors:
+
+| Postgres error | Response |
+| --- | --- |
+| Unique violation (`23505`) | `409 CONFLICT`: `A record with this value already exists` |
+| Foreign key violation (`23503`) | `409 CONFLICT`: `This record conflicts with a related record` |
+| Not-null violation (`23502`) | `400 VALIDATION`: `A required value is missing` |
+| Invalid value, such as a malformed uuid (`22P02`) | `400 VALIDATION`: `A value has an invalid format` |
+| Anything else | `500 INTERNAL_SERVER_ERROR` |
+
+```json
+{ "code": "CONFLICT", "message": "A record with this value already exists" }
+```
+
+The table, constraint, SQL and values are never sent to the client. They
+are logged on the server with the request id.
+
+For a more precise answer, catch the error in your handler and throw
+[your own error](../essentials/errors.md#sending-your-own-errors). The
+Postgres code is on `error.cause.errno`:
+
+```ts
+try {
+  return await db.insert(votes).values(body).returning();
+} catch (error) {
+  const cause = (error as Error).cause as { errno?: string } | undefined;
+  if (cause?.errno === "23505")
+    throw alreadyVoted("You already voted for this post");
+  throw error;
+}
+```
+
 ## Scripts and seeds
 
 `app.db` is available as soon as the app is created:
@@ -170,7 +205,5 @@ Point the app at a test database with `url`, and call it through
 - Databases other than Postgres. Lyn uses Bun's built-in Postgres driver.
 - Migrations. Until the `lyn` CLI ships, create your tables with
   `drizzle-kit` (set `casing: "snake_case"` in its config) or plain SQL.
-- Turning Postgres errors (unique violation…) into `409` or `400`. They
-  are `500` for now.
 - Connection pool options.
 :::

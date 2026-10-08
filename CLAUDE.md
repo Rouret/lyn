@@ -74,9 +74,9 @@ src/
   index.ts     Lyn class (route builder, handle, listen/stop/url, db), public exports: Lyn, z, logger, LynEnvError, LynDatabaseError
   db.ts        public `lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
   features/
-    feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onStart?, onStop?, onResponse? } — internal, not a public plugin API
+    feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
     cors.ts      CorsConfig, corsFeature (onResponse: actual + preflight headers)
-    database.ts  DatabaseConfig, databaseFeature (DATABASE_URL env, Bun SQL, snake_case, ping / close), DatabaseContext, DatabaseOf
+    database.ts  DatabaseConfig, databaseFeature (DATABASE_URL env, Bun SQL, snake_case, ping / close, Postgres SQLSTATE → 409/400), DatabaseContext, DatabaseOf
   router.ts    Segment trie: path validation, matching, params extraction
   coerce.ts    coerceValue: string → number/boolean according to the zod field (unwraps .optional())
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
@@ -87,7 +87,7 @@ src/
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, throws LynEnvError on invalid/missing
-  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
+  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, INTERNAL_SERVER_ERROR)
   logger.ts    one pino root `logger` (exported) + `internalLogger` child (msgPrefix "[Lyn] ");
                options from env: JSON in production, pino-pretty otherwise, LOG_LEVEL, silent in lyn-test
   utils.ts     getDefaultStatusFromMethod
@@ -177,10 +177,11 @@ feature's `env` and parses it with the user's in one `parseEnvs` pass (one
 the typed `app.env` and the feature's own variables. `Lyn` merges
 their `context` into every handler context, runs `onStart` in order on
 `listen()`, `onStop` in reverse order on `stop()`, and pipes every response
-through `onResponse`. Adding a feature = a new file + one entry in
+through `onResponse`. When a handler throws something that is not a
+LynError, the first feature whose `mapError` returns a LynError answers
+(logged at warn with the original error); otherwise 500. Adding a feature = a new file + one entry in
 `BUILT_IN_FEATURES`; never add `if (this.config.x)` branches to `Lyn`
-methods. A `mapError` hook (Postgres → HTTP errors) is planned with the
-error mapping; add it to `Feature` then, not before.
+methods.
 Users only see `new Lyn({ … })` options.
 
 ### Database (`src/features/database.ts`)
@@ -196,6 +197,10 @@ Users only see `new Lyn({ … })` options.
   `LynDatabaseError("Cannot connect to the database: <cause>")` (cause from
   `DrizzleQueryError.cause`, never the URL or the query); `onStop` closes the
   pool and marks it closed, so a later `listen()` explains it can't reconnect.
+- `mapError`: finds `SQL.PostgresError` (thrown directly or as Drizzle's
+  `cause`) and maps its `errno` (SQLSTATE): 23505 / 23503 → `ConflictError`,
+  23502 / 22P02 → `InvalidValueError` (code `VALIDATION`). Fixed messages
+  only: never the table, constraint, SQL or values.
 - `db` is the raw `drizzle()` return type (`BunSQLDatabase<TSchema> & { $client: SQL }`).
   Never wrap it. Drizzle errors' `message` contains the SQL and parameters:
   never forward it to clients.
@@ -252,7 +257,6 @@ Treat these as current behaviour. Fix them only when asked, and update
 - `DELETE` defaults to 204, so a returned body is dropped by the runtime.
 - An app with a database can't `listen()` again after `stop()` (the pool is
   closed); tests and scripts create a new app instead.
-- Postgres errors raised in handlers become a generic 500 (mapping planned).
 
 ## Conventions
 

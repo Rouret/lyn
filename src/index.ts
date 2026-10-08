@@ -172,6 +172,14 @@ class Lyn<
     this.router.add(route);
   }
 
+  private mapError = (error: unknown) => {
+    for (const feature of this.features) {
+      const mappedError = feature.mapError?.(error);
+      if (mappedError) return mappedError;
+    }
+    return undefined;
+  };
+
   async handle(request: Request): Promise<Response> {
     const startedAt = performance.now();
     const requestId = resolveRequestId(request);
@@ -184,6 +192,7 @@ class Lyn<
       match: this.router.match(request.method, pathname),
       log: requestLogger,
       appContext: this.appContext,
+      mapError: this.mapError,
     });
     const response = this.features.reduce(
       (current, feature) => feature.onResponse?.(request, current) ?? current,

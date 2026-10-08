@@ -28,6 +28,18 @@ export class ValidationError extends LynError {
   }
 }
 
+export class InvalidValueError extends LynError {
+  constructor(message: string) {
+    super("VALIDATION", 400, message);
+  }
+}
+
+export class ConflictError extends LynError {
+  constructor(message: string) {
+    super("CONFLICT", 409, message);
+  }
+}
+
 export class NoBodyError extends LynError {
   constructor() {
     super("NO_BODY", 400, "No body provided");

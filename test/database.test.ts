@@ -4,7 +4,7 @@ import { Lyn, z } from "#/index";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import * as schema from "test/fixtures/schema";
-import { CREATE_USERS_TABLE } from "test/fixtures/sql";
+import { CREATE_POSTS_TABLE, CREATE_USERS_TABLE } from "test/fixtures/sql";
 
 const TEST_DATABASE_URL = Bun.env.TEST_DATABASE_URL;
 const UNREACHABLE_DATABASE_URL = "postgres://lyn:lyn@127.0.0.1:1/lyn";
@@ -219,7 +219,7 @@ describe.skipIf(!TEST_DATABASE_URL)("database (Postgres)", () => {
 
   beforeAll(async () => {
     app = createApp();
-    await app.db.execute(sql.raw("drop table if exists users"));
+    await app.db.execute(sql.raw("drop table if exists posts, users"));
     await app.db.execute(sql.raw(CREATE_USERS_TABLE));
   });
 
@@ -228,7 +228,7 @@ describe.skipIf(!TEST_DATABASE_URL)("database (Postgres)", () => {
   });
 
   afterAll(async () => {
-    await app.db.execute(sql.raw("drop table if exists users"));
+    await app.db.execute(sql.raw("drop table if exists posts, users"));
     await app.stop();
   });
 
@@ -285,5 +285,112 @@ describe.skipIf(!TEST_DATABASE_URL)("database (Postgres)", () => {
     const queryAfterStop = async () => stopped.db.execute(sql`select 1`);
 
     await expect(queryAfterStop()).rejects.toThrow();
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("database errors (Postgres)", () => {
+  const app = new Lyn({
+    ...TEST_LYN_CONFIG,
+    database: { schema, url: TEST_DATABASE_URL ?? UNREACHABLE_DATABASE_URL },
+  })
+    .post(
+      "/users",
+      ({ db, body }) => db.insert(schema.users).values(body).returning(),
+      { body: z.object({ email: z.string() }) }
+    )
+    .post("/users/without-email", ({ db }) =>
+      db.execute(sql`insert into users (email) values (null)`)
+    )
+    .get("/users/:id", ({ db, params }) =>
+      db.select().from(schema.users).where(eq(schema.users.id, params.id)),
+      { params: z.object({ id: z.string() }) }
+    )
+    .post("/users/:id/posts", ({ db, params }) =>
+      db.execute(sql`insert into posts (author_id) values (${params.id})`),
+      { params: z.object({ id: z.string() }) }
+    )
+    .get("/broken", ({ db }) => db.execute(sql`select * from missing_table`));
+
+  const call = (method: string, path: string, body?: object) =>
+    app.handle(
+      new Request(`http://lyn.test${path}`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: body && JSON.stringify(body),
+      })
+    );
+
+  beforeAll(async () => {
+    await app.db.execute(sql.raw("drop table if exists posts, users"));
+    await app.db.execute(sql.raw(CREATE_USERS_TABLE));
+    await app.db.execute(sql.raw(CREATE_POSTS_TABLE));
+  });
+
+  afterAll(async () => {
+    await app.db.execute(sql.raw("drop table if exists posts, users"));
+    await app.stop();
+  });
+
+  it("answers 409 CONFLICT on a unique violation", async () => {
+    await call("POST", "/users", { email: "ada@example.com" });
+
+    const response = await call("POST", "/users", { email: "ada@example.com" });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      code: "CONFLICT",
+      message: "A record with this value already exists",
+    });
+  });
+
+  it("answers 409 CONFLICT on a foreign key violation", async () => {
+    const response = await call(
+      "POST",
+      "/users/00000000-0000-0000-0000-000000000000/posts"
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      code: "CONFLICT",
+      message: "This record conflicts with a related record",
+    });
+  });
+
+  it("answers 400 VALIDATION on a not-null violation", async () => {
+    const response = await call("POST", "/users/without-email");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      code: "VALIDATION",
+      message: "A required value is missing",
+    });
+  });
+
+  it("answers 400 VALIDATION on a malformed value", async () => {
+    const response = await call("GET", "/users/not-a-uuid");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      code: "VALIDATION",
+      message: "A value has an invalid format",
+    });
+  });
+
+  it("answers 500 on any other database error", async () => {
+    const response = await call("GET", "/broken");
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Internal Server Error",
+    });
+  });
+
+  it("never sends the table, constraint or values to the client", async () => {
+    const response = await call("POST", "/users", { email: "ada@example.com" });
+
+    const text = await response.text();
+    expect(text).not.toContain("users");
+    expect(text).not.toContain("ada@example.com");
   });
 });

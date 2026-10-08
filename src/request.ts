@@ -31,6 +31,7 @@ type RequestDispatch = {
   match: RouteMatch;
   log: RequestLogger;
   appContext: Record<string, unknown>;
+  mapError: (error: unknown) => LynError | undefined;
 };
 
 export const handleRouteMatch = ({
@@ -39,12 +40,14 @@ export const handleRouteMatch = ({
   match,
   log,
   appContext,
+  mapError,
 }: RequestDispatch): Promise<Response> | Response => {
   switch (match.status) {
     case "found":
       return handleRequestLifecycle(request, match.route, match.params, {
         log,
         appContext,
+        mapError,
       });
     case "method_not_allowed":
       if (request.method === "OPTIONS") {
@@ -65,7 +68,7 @@ const handleRequestLifecycle = async (
   request: Request,
   route: AnyRoute,
   params: Record<string, string>,
-  { log, appContext }: Pick<RequestDispatch, "log" | "appContext">
+  { log, appContext, mapError }: Pick<RequestDispatch, "log" | "appContext" | "mapError">
 ): Promise<Response> => {
   try {
     const set: SetDefinition = {
@@ -82,6 +85,11 @@ const handleRequestLifecycle = async (
   } catch (error: unknown) {
     if (isLynError(error)) {
       return handleError(error);
+    }
+    const mappedError = mapError(error);
+    if (mappedError) {
+      log.warn({ err: error }, `Handler error mapped to ${mappedError.code}`);
+      return handleError(mappedError);
     }
     log.error({ err: error }, "Unhandled error in route handler");
     return handleError(new InternalServerError());

@@ -7,7 +7,6 @@ const postgresErrorCode = (error: unknown): string | undefined => {
   return (cause as { errno?: string } | undefined)?.errno;
 };
 
-// TODO(lyn): Lyn should map unique and foreign key violations itself.
 export const isUniqueViolation = (error: unknown) =>
   postgresErrorCode(error) === "23505";
 

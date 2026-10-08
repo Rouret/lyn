@@ -1,3 +1,4 @@
+import { ConflictError, InvalidValueError, type LynError } from "#/error";
 import type { Feature, FeatureDefinition } from "#/features/feature";
 import { SQL } from "bun";
 import { sql } from "drizzle-orm";
@@ -62,6 +63,25 @@ const resolveDatabaseUrl = <TEnv>(
 const createDatabase = (schema: DatabaseSchema, url: string): Database =>
   drizzle({ client: new SQL(url), schema, casing: "snake_case" });
 
+const POSTGRES_ERRORS: Record<string, () => LynError> = {
+  "23505": () => new ConflictError("A record with this value already exists"),
+  "23503": () => new ConflictError("This record conflicts with a related record"),
+  "23502": () => new InvalidValueError("A required value is missing"),
+  "22P02": () => new InvalidValueError("A value has an invalid format"),
+};
+
+const findPostgresError = (error: unknown) => {
+  if (error instanceof SQL.PostgresError) return error;
+  if (error instanceof Error && error.cause instanceof SQL.PostgresError)
+    return error.cause;
+  return undefined;
+};
+
+const mapPostgresError = (error: unknown): LynError | undefined => {
+  const sqlState = findPostgresError(error)?.errno;
+  return sqlState ? POSTGRES_ERRORS[sqlState]?.() : undefined;
+};
+
 const connectionFailureReason = (error: unknown): string => {
   const cause = error instanceof Error ? error.cause : undefined;
   return cause instanceof Error ? cause.message : "unknown error";
@@ -89,6 +109,7 @@ const createDatabaseFeature = (db: Database): Feature => {
       isClosed = true;
       await db.$client.close();
     },
+    mapError: mapPostgresError,
   };
 };
 
