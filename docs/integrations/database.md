@@ -106,6 +106,12 @@ db.query.posts;     // type error: no such table
 Routes of an app without `database` have no `db` in their context, and
 using `app.db` is a type error.
 
+::: tip JSON columns
+`json()` and `jsonb()` columns take and return plain objects. In raw
+`sql`, pass the object itself, not `JSON.stringify(object)`, which would
+be stored as a JSON string.
+:::
+
 ## Column names
 
 Lyn configures Drizzle with `casing: "snake_case"`: camelCase keys in your

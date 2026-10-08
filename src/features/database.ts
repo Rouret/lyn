@@ -7,6 +7,7 @@ import { currentRequestLog } from "#/request-log";
 import { SQL } from "bun";
 import { sql, type Logger } from "drizzle-orm";
 import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
+import { PgJson, PgJsonb } from "drizzle-orm/pg-core";
 
 export type DatabaseSchema = Record<string, unknown>;
 
@@ -102,6 +103,13 @@ const queryLogger: Logger = {
     ),
 };
 
+// Bun SQL JSON-encodes a string bound to a json/jsonb parameter, so Drizzle's
+// JSON.stringify would store a JSON string instead of the object.
+const passJsonValuesToBunSql = () => {
+  PgJson.prototype.mapToDriverValue = (value) => value;
+  PgJsonb.prototype.mapToDriverValue = (value) => value;
+};
+
 const createDatabase = (
   {
     schema,
@@ -110,6 +118,7 @@ const createDatabase = (
   }: Pick<DatabaseConfig<DatabaseSchema, never>, "schema" | "pool" | "logQueries">,
   url: string
 ): Database => {
+  passJsonValuesToBunSql();
   return drizzle({
     client: new SQL(url, { ...DEFAULT_POOL, ...pool }),
     schema,

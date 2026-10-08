@@ -221,6 +221,11 @@ Users only see `new Lyn({ … })` options.
 - `migrateOnStart` → `onStart`, after the ping: `loadDatabasePaths(process.cwd())`
   then `applyMigrations` (advisory lock, so concurrent instances migrate
   once); failures → `LynDatabaseError("migrateOnStart failed: …")`.
+- Bun SQL JSON-encodes strings bound to json/jsonb params, so Drizzle's
+  `JSON.stringify` double-encoded them. `createDatabase` patches
+  `PgJson`/`PgJsonb.prototype.mapToDriverValue` to pass the value as-is.
+  `test/database-driver.test.ts` (load + JSON) guards it: re-run it on
+  every Bun or Drizzle upgrade, and drop the patch once upstream is fixed.
 
 ### CORS (`src/features/cors.ts`)
 
