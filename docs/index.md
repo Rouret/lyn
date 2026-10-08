@@ -24,7 +24,7 @@ hero:
 **1. Install**
 
 ```bash
-bun add lyn
+bun add @rouret/lyn
 ```
 
 **2. Point it at Postgres**
@@ -37,7 +37,7 @@ DATABASE_URL=postgres://localhost:5432/app
 **3. Write your routes**
 
 ```ts
-import { Lyn, z } from "lyn";
+import { Lyn, z } from "@rouret/lyn";
 import * as schema from "./db/schema";
 
 await new Lyn({ database: { schema } })

@@ -6,9 +6,9 @@ explains it.
 ## Exports
 
 ```ts
-import { Lyn, z, logger, LynEnvError, LynDatabaseError } from "lyn";
-import { pgTable, text, eq, sql /* … */ } from "lyn/db";
-import { defineConfig } from "lyn/config";
+import { Lyn, z, logger, LynEnvError, LynDatabaseError } from "@rouret/lyn";
+import { pgTable, text, eq, sql /* … */ } from "@rouret/lyn/db";
+import { defineConfig } from "@rouret/lyn/config";
 ```
 
 | Export | Description |
@@ -18,8 +18,8 @@ import { defineConfig } from "lyn/config";
 | `logger` | The pino logger used by Lyn · [Logging](../configuration/logging.md#your-own-logs) |
 | `LynEnvError` | Thrown by `new Lyn()` on invalid environment variables · [Environment variables](../configuration/environment-variables.md#when-something-is-wrong) |
 | `LynDatabaseError` | Thrown by `listen()` when the database is unreachable · [Database](../integrations/database.md#startup-and-shutdown) |
-| `lyn/db` | Everything from `drizzle-orm` and `drizzle-orm/pg-core` · [Database](../integrations/database.md) |
-| `lyn/config` | `defineConfig` for an optional `lyn.config.ts` · [Migrations](../integrations/database.md#other-paths) |
+| `@rouret/lyn/db` | Everything from `drizzle-orm` and `drizzle-orm/pg-core` · [Database](../integrations/database.md) |
+| `@rouret/lyn/config` | `defineConfig` for an optional `lyn.config.ts` · [Migrations](../integrations/database.md#other-paths) |
 
 ## `new Lyn(config?)`
 

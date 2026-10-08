@@ -19,7 +19,7 @@ It is made for proofs of concept, solo developers and agencies: a working,
 safe API quickly, without assembling a stack first.
 
 ```ts
-import { Lyn, z } from "lyn";
+import { Lyn, z } from "@rouret/lyn";
 
 await new Lyn()
   .get("/", () => "Hello World")

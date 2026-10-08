@@ -4,7 +4,7 @@ Pass Zod schemas as the third argument of a route. Lyn checks the request
 before calling your handler, and types the handler from the schemas.
 
 ```ts
-import { Lyn, z } from "lyn";
+import { Lyn, z } from "@rouret/lyn";
 
 new Lyn().put(
   "/users/:id",
@@ -26,7 +26,7 @@ Lyn checks the **body, then params, then query**. The first failure stops
 the request with a `400` (see [Errors](errors.md)).
 
 ::: tip
-Use the `z` exported by `lyn` rather than installing Zod yourself, so your
+Use the `z` exported by `@rouret/lyn` rather than installing Zod yourself, so your
 schemas match Lyn's Zod version (Zod 4).
 :::
 

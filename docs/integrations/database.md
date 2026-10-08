@@ -6,11 +6,11 @@ use the ready, typed Drizzle instance in your handlers.
 
 ## Quick start
 
-Describe your tables with the helpers exported by `lyn/db`:
+Describe your tables with the helpers exported by `@rouret/lyn/db`:
 
 ```ts
 // src/db/schema.ts
-import { pgTable, text, timestamp, uuid } from "lyn/db";
+import { pgTable, text, timestamp, uuid } from "@rouret/lyn/db";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
@@ -24,7 +24,7 @@ Pass the schema to Lyn:
 
 ```ts
 // src/index.ts
-import { Lyn, z } from "lyn";
+import { Lyn, z } from "@rouret/lyn";
 import * as schema from "./db/schema";
 
 const app = new Lyn({ database: { schema } })
@@ -64,7 +64,7 @@ returns, typed from your schema. Everything in the
 relational queries, the query builder, transactions, raw SQL.
 
 ```ts
-import { eq, sql } from "lyn/db";
+import { eq, sql } from "@rouret/lyn/db";
 
 .get(
   "/users/:id",
@@ -88,8 +88,8 @@ import { eq, sql } from "lyn/db";
 )
 ```
 
-::: tip Import Drizzle from `lyn/db`
-`lyn/db` re-exports `drizzle-orm` and `drizzle-orm/pg-core`: `pgTable`,
+::: tip Import Drizzle from `@rouret/lyn/db`
+`@rouret/lyn/db` re-exports `drizzle-orm` and `drizzle-orm/pg-core`: `pgTable`,
 column types, `eq`, `and`, `sql`… Don't install `drizzle-orm` yourself, so
 your schema always uses the same Drizzle version as Lyn.
 :::
@@ -152,7 +152,7 @@ root of your project:
 
 ```ts
 // lyn.config.ts
-import { defineConfig } from "lyn/config";
+import { defineConfig } from "@rouret/lyn/config";
 
 export default defineConfig({
   database: {

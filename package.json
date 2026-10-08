@@ -1,5 +1,5 @@
 {
-  "name": "lyn",
+  "name": "@rouret/lyn",
   "module": "src/index.ts",
   "bin": {
     "lyn": "src/cli/index.ts"

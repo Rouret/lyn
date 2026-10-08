@@ -60,7 +60,7 @@ The values themselves are never printed, since they may be secrets.
 Left uncaught, the error stops the process. You can also catch it:
 
 ```ts
-import { Lyn, LynEnvError } from "lyn";
+import { Lyn, LynEnvError } from "@rouret/lyn";
 
 try {
   new Lyn({ env: { port: { name: "PORT", type: "number" } } });

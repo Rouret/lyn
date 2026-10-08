@@ -10,7 +10,7 @@ port, and there is nothing to stop.
 ```ts
 // users.test.ts
 import { expect, it } from "bun:test";
-import { Lyn, z } from "lyn";
+import { Lyn, z } from "@rouret/lyn";
 
 const app = new Lyn().post(
   "/users",
@@ -45,7 +45,7 @@ Building `Request` objects gets repetitive. A ten-line helper is enough:
 
 ```ts
 // test/client.ts
-import type { Lyn } from "lyn";
+import type { Lyn } from "@rouret/lyn";
 
 export const createClient = (app: Pick<Lyn, "handle">) => {
   const send = (method: string, path: string, body?: unknown) =>
@@ -112,7 +112,7 @@ Use `delete Bun.env.NAME`. Assigning `undefined` stores the string
 An invalid configuration throws, so you can test it without mocks:
 
 ```ts
-import { Lyn, LynEnvError } from "lyn";
+import { Lyn, LynEnvError } from "@rouret/lyn";
 
 delete Bun.env.API_KEY;
 expect(() => new Lyn({ env: { apiKey: { name: "API_KEY", type: "string" } } }))

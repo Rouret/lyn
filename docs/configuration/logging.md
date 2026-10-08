@@ -45,7 +45,7 @@ example), Lyn reuses it, as long as it is 1 to 128 characters among
 Use the exported `logger`. It shares Lyn's level and output format:
 
 ```ts
-import { logger } from "lyn";
+import { logger } from "@rouret/lyn";
 
 .post("/orders", ({ body }) => {
   logger.info({ orderId: body.id }, "order received");

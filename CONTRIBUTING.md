@@ -82,7 +82,7 @@ bun run docs:dev
   "Not supported yet" box and `reference/api.md` in the same commit.
 - Write for someone who has never seen the code: short sentences, one idea
   per paragraph, an example before the details.
-- Examples import from `lyn` and `lyn/db`, never from `src/`.
+- Examples import from `@rouret/lyn` and `@rouret/lyn/db`, never from `src/`.
 - `bun run docs:build` fails on dead links.
 
 ## Commits

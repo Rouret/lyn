@@ -14,7 +14,7 @@ git clone https://github.com/Rouret/lyn.git
 cd lyn && bun install
 ```
 
-Then map the `lyn` imports to the clone in your project's `tsconfig.json`.
+Then map the `@rouret/lyn` imports to the clone in your project's `tsconfig.json`.
 Bun reads these paths at runtime, so no build step is needed. The `#/*`
 entry is Lyn's internal alias: your editor needs it to type-check Lyn's
 code.
@@ -23,15 +23,15 @@ code.
 {
   "compilerOptions": {
     "paths": {
-      "lyn": ["../lyn/src/index.ts"],
-      "lyn/db": ["../lyn/src/db.ts"],
+      "@rouret/lyn": ["../lyn/src/index.ts"],
+      "@rouret/lyn/db": ["../lyn/src/db.ts"],
       "#/*": ["../lyn/src/*"]
     }
   }
 }
 ```
 
-Every example in this documentation imports from `lyn`, as it will once the
+Every example in this documentation imports from `@rouret/lyn`, as it will once the
 package is published.
 
 ## Your first server
@@ -39,7 +39,7 @@ package is published.
 Create `server.ts`:
 
 ```ts
-import { Lyn, z } from "lyn";
+import { Lyn, z } from "@rouret/lyn";
 
 await new Lyn()
   .get("/", () => "Hello World")
@@ -101,7 +101,7 @@ Send a valid email and you get a `201 Created` with the new user.
 ## What Lyn exports
 
 ```ts
-import { Lyn, z, logger, LynEnvError, LynDatabaseError } from "lyn";
+import { Lyn, z, logger, LynEnvError, LynDatabaseError } from "@rouret/lyn";
 ```
 
 | Export | What it is |
@@ -112,7 +112,7 @@ import { Lyn, z, logger, LynEnvError, LynDatabaseError } from "lyn";
 | `LynEnvError` | Thrown by `new Lyn()` when [environment variables](../configuration/environment-variables.md) are invalid |
 | `LynDatabaseError` | Thrown by `listen()` when the [database](../integrations/database.md) is unreachable |
 
-Drizzle helpers for the database come from `lyn/db`.
+Drizzle helpers for the database come from `@rouret/lyn/db`.
 
 ## Next steps
 

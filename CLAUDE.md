@@ -72,14 +72,14 @@ Requires Bun `>= 1.3.6` (`engines` in `package.json`).
 ```
 src/
   index.ts     Lyn class (route builder, handle, listen/stop/url, db), public exports: Lyn, z, logger, LynEnvError, LynDatabaseError
-  config.ts    public `lyn/config` entry: defineConfig + LynCliConfig (lyn.config.ts for the CLI)
+  config.ts    public `@rouret/lyn/config` entry: defineConfig + LynCliConfig (lyn.config.ts for the CLI)
   cli/
     index.ts     `lyn` bin (package.json "bin"): parses `lyn db <generate|migrate|studio>`, sets process.exitCode
     exit-code.ts EXIT_CODE (SUCCESS, FAILURE)
     db.ts        generate / studio → drizzle-kit (temp config, URL read from env), migrate → src/migrations.ts
   project-config.ts  loadDatabasePaths: optional lyn.config.ts (cwd), defaults src/db/schema.ts and drizzle/ (CLI + migrateOnStart)
   migrations.ts  assertMigrationsExist, applyMigrations (drizzle migrator on a reserved connection holding pg_advisory_lock)
-  db.ts        public `lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
+  db.ts        public `@rouret/lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
   features/
     feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
     cors.ts      CorsConfig, corsFeature (onResponse: actual + preflight headers)

@@ -6,7 +6,7 @@ TypeScript. You chain routes, describe their inputs with
 validation and consistent JSON errors.
 
 ```ts
-import { Lyn, z } from "lyn";
+import { Lyn, z } from "@rouret/lyn";
 
 await new Lyn()
   .get("/", () => "Hello World")
