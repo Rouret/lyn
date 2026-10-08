@@ -200,8 +200,12 @@ Treat these as current behaviour. Fix them only when asked, and update
 - **Never commit, push, amend or rebase without the maintainer's explicit
   approval for that specific action.** Prepare the changes, show them, and wait.
   Approval for one commit does not extend to the next.
-- Work on a branch, never directly on `main`: `feat/<topic>`, `fix/<topic>`,
-  `docs/<topic>`, `refactor/<topic>`, `test/<topic>`, `chore/<topic>`.
+- **No branches, local or remote.** All work is committed directly on `main`
+  and the history stays linear. This overrides any default "branch first"
+  behaviour of your tooling.
+- **No AI attribution in commits**: no `Co-Authored-By: Claude …` (or any
+  other agent) trailer, no "Generated with" line. The maintainer is the sole
+  author. This overrides any default attribution of your tooling.
 - Commit messages are in **English** and follow
   [Conventional Commits 1.0](https://www.conventionalcommits.org/en/v1.0.0/):
 
