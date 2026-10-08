@@ -74,9 +74,9 @@ src/
   index.ts     Lyn class (route builder, handle, listen/stop/url, db), public exports: Lyn, z, logger, LynEnvError, LynDatabaseError
   db.ts        public `lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
   features/
-    feature.ts   Feature: { context?, onStart?, onStop?, onResponse? } — internal, not a public plugin API
-    cors.ts      CorsConfig, createCorsFeature (onResponse: actual + preflight headers)
-    database.ts  DatabaseConfig, createDatabase (Bun SQL, snake_case), createDatabaseFeature (ping / close), DatabaseContext, DatabaseOf
+    feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onStart?, onStop?, onResponse? } — internal, not a public plugin API
+    cors.ts      CorsConfig, corsFeature (onResponse: actual + preflight headers)
+    database.ts  DatabaseConfig, databaseFeature (DATABASE_URL env, Bun SQL, snake_case, ping / close), DatabaseContext, DatabaseOf
   router.ts    Segment trie: path validation, matching, params extraction
   coerce.ts    coerceValue: string → number/boolean according to the zod field (unwraps .optional())
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
@@ -165,12 +165,18 @@ when the handler did not set it.
 
 ### Features (`src/features/`)
 
-Built-in features are internal modules created from the config in the
-constructor (`createXFeature(config) → Feature | undefined`). `Lyn` merges
+Built-in features are internal modules listed in `BUILT_IN_FEATURES`
+(`src/index.ts`). Each exports a `FeatureDefinition`: `(config) → undefined`
+when disabled, else `{ env?, create }`. The constructor collects every
+feature's `env` and parses it with the user's in one `parseEnvs` pass (one
+`LynEnvError`, kept off `app.env`), then calls `create({ app, own })` with
+the typed `app.env` and the feature's own variables. `Lyn` merges
 their `context` into every handler context, runs `onStart` in order on
 `listen()`, `onStop` in reverse order on `stop()`, and pipes every response
-through `onResponse`. Adding a feature = a new file + one line in the
-constructor; never add `if (this.config.x)` branches to `Lyn` methods.
+through `onResponse`. Adding a feature = a new file + one entry in
+`BUILT_IN_FEATURES`; never add `if (this.config.x)` branches to `Lyn`
+methods. A `mapError` hook (Postgres → HTTP errors) is planned with the
+error mapping; add it to `Feature` then, not before.
 Users only see `new Lyn({ … })` options.
 
 ### Database (`src/features/database.ts`)

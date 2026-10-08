@@ -5,16 +5,11 @@ import {
   type EnvConfig,
   type LynEnv,
 } from "#/env";
-import { createCorsFeature } from "#/features/cors";
+import { corsFeature } from "#/features/cors";
 import {
-  createDatabase,
-  createDatabaseFeature,
-  DATABASE_URL_ENV_CONFIG,
+  databaseFeature,
   LynDatabaseError,
   NO_DATABASE_MESSAGE,
-  needsDatabaseUrlFromEnv,
-  resolveDatabaseUrl,
-  type Database,
   type DatabaseContext,
   type DatabaseOf,
   type DatabaseSchema,
@@ -46,6 +41,8 @@ const DEFAULT_LYN_CONFIG: Pick<LynConfig, "start"> = {
   },
 };
 
+const BUILT_IN_FEATURES = [databaseFeature, corsFeature];
+
 type ServerStatus = "stopped" | "starting" | "running";
 
 const isDefined = <T>(value: T | undefined): value is T => value !== undefined;
@@ -59,16 +56,18 @@ class Lyn<
   private baseUrl: string | null = null;
   private status: ServerStatus = "stopped";
   private config: LynConfig<TEnvConfig, TSchema>;
-  private readonly database: Database | undefined;
   private readonly features: Feature[];
   private readonly appContext: Record<string, unknown>;
   public readonly env: LynEnv<TEnvConfig>;
 
   constructor(config: LynConfig<TEnvConfig, TSchema> = {}) {
     // TODO: create a lyn.config.ts file to store the config
-    const [env, databaseEnv] = parseEnvs(
+    const featureSetups = BUILT_IN_FEATURES.map((defineFeature) =>
+      defineFeature(config)
+    ).filter(isDefined);
+    const [env, ...featureEnvs] = parseEnvs(
       { ...lynEnvConfig, ...config.env },
-      needsDatabaseUrlFromEnv(config.database) ? DATABASE_URL_ENV_CONFIG : {}
+      ...featureSetups.map((setup) => setup.env ?? {})
     );
     this.env = env as LynEnv<TEnvConfig>;
 
@@ -79,21 +78,9 @@ class Lyn<
 
     internalLogger.info("All environment variables are valid");
 
-    this.database = config.database
-      ? createDatabase(
-          config.database.schema as DatabaseSchema,
-          resolveDatabaseUrl(
-            config.database,
-            this.env,
-            (databaseEnv as Partial<{ databaseUrl: string }>).databaseUrl
-          )
-        )
-      : undefined;
-
-    this.features = [
-      this.database && createDatabaseFeature(this.database),
-      createCorsFeature(config.cors),
-    ].filter(isDefined);
+    this.features = featureSetups.map((setup, index) =>
+      setup.create({ app: this.env, own: featureEnvs[index] ?? {} })
+    );
     this.appContext = Object.assign(
       {},
       ...this.features.map((feature) => feature.context)
@@ -105,8 +92,8 @@ class Lyn<
    * `ctx.db` in handlers; use it in scripts, seeds and tests.
    */
   get db(): DatabaseOf<TSchema> {
-    if (!this.database) throw new Error(NO_DATABASE_MESSAGE);
-    return this.database as DatabaseOf<TSchema>;
+    if (!("db" in this.appContext)) throw new Error(NO_DATABASE_MESSAGE);
+    return this.appContext.db as DatabaseOf<TSchema>;
   }
 
   get<

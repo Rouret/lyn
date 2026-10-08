@@ -1,4 +1,4 @@
-import type { Feature } from "#/features/feature";
+import type { Feature, FeatureDefinition } from "#/features/feature";
 import { SQL } from "bun";
 import { sql } from "drizzle-orm";
 import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
@@ -41,28 +41,25 @@ export class LynDatabaseError extends Error {
   }
 }
 
-export const DATABASE_URL_ENV_CONFIG = {
+const DATABASE_URL_ENV_CONFIG = {
   databaseUrl: { name: "DATABASE_URL", type: "string" },
 } as const;
 
-export const needsDatabaseUrlFromEnv = (config: { url?: unknown } | undefined) =>
-  config !== undefined && config.url === undefined;
-
-export const resolveDatabaseUrl = <TEnv>(
+const resolveDatabaseUrl = <TEnv>(
   config: DatabaseConfig<unknown, TEnv>,
   env: TEnv,
-  databaseUrlFromEnv: string | undefined
+  databaseUrlFromEnv: unknown
 ): string => {
   const url =
     typeof config.url === "function" ? config.url(env) : config.url ?? databaseUrlFromEnv;
-  if (!url?.trim())
+  if (typeof url !== "string" || !url.trim())
     throw new LynDatabaseError(
       "database.url must be a non-empty Postgres connection string"
     );
   return url;
 };
 
-export const createDatabase = (schema: DatabaseSchema, url: string): Database =>
+const createDatabase = (schema: DatabaseSchema, url: string): Database =>
   drizzle({ client: new SQL(url), schema, casing: "snake_case" });
 
 const connectionFailureReason = (error: unknown): string => {
@@ -70,7 +67,7 @@ const connectionFailureReason = (error: unknown): string => {
   return cause instanceof Error ? cause.message : "unknown error";
 };
 
-export const createDatabaseFeature = (db: Database): Feature => {
+const createDatabaseFeature = (db: Database): Feature => {
   let isClosed = false;
 
   return {
@@ -92,5 +89,19 @@ export const createDatabaseFeature = (db: Database): Feature => {
       isClosed = true;
       await db.$client.close();
     },
+  };
+};
+
+export const databaseFeature: FeatureDefinition = ({ database }) => {
+  if (!database) return undefined;
+  return {
+    env: database.url === undefined ? DATABASE_URL_ENV_CONFIG : undefined,
+    create: ({ app, own }) =>
+      createDatabaseFeature(
+        createDatabase(
+          database.schema,
+          resolveDatabaseUrl(database, app, own.databaseUrl)
+        )
+      ),
   };
 };

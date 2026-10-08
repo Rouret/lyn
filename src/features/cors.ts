@@ -1,4 +1,4 @@
-import type { Feature } from "#/features/feature";
+import type { FeatureDefinition } from "#/features/feature";
 
 export type CorsConfig = {
   /**
@@ -82,12 +82,12 @@ const applyCors = (
   return response;
 };
 
-export const createCorsFeature = (
-  config: CorsConfig | undefined
-): Feature | undefined => {
-  if (!config) return undefined;
-  assertValidCorsConfig(config);
+export const corsFeature: FeatureDefinition = ({ cors }) => {
+  if (!cors) return undefined;
+  assertValidCorsConfig(cors);
   return {
-    onResponse: (request, response) => applyCors(request, response, config),
+    create: () => ({
+      onResponse: (request, response) => applyCors(request, response, cors),
+    }),
   };
 };
