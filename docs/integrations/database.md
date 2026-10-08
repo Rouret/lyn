@@ -112,6 +112,54 @@ Lyn configures Drizzle with `casing: "snake_case"`: camelCase keys in your
 schema map to snake_case columns, which is the usual Postgres convention.
 `displayName: text()` is stored as `display_name` without repeating the name.
 
+## Migrations
+
+The `lyn db` commands create and apply your migrations. Generating them
+uses [drizzle-kit](https://orm.drizzle.team/docs/kit-overview), installed
+once as a dev dependency:
+
+```bash
+bun add -d drizzle-kit
+```
+
+```bash
+bunx lyn db generate   # write the SQL for your schema changes to drizzle/
+bunx lyn db migrate    # apply the pending migrations to DATABASE_URL
+bunx lyn db studio     # browse your data in Drizzle Studio
+```
+
+`generate` compares `src/db/schema.ts` with the previous migrations and
+writes a new SQL file to `drizzle/`. Commit that folder. `migrate` applies
+the files not applied yet, so you can run it on every deploy. It doesn't
+need drizzle-kit, so production installs stay light.
+
+`migrate` and `studio` read `DATABASE_URL`. Bun loads it from your `.env`
+files.
+
+Extra flags go to drizzle-kit, for example
+`bunx lyn db generate --name add_users` or `bunx lyn db studio --port 5000`.
+
+### Other paths
+
+If your schema or migrations live elsewhere, add a `lyn.config.ts` at the
+root of your project:
+
+```ts
+// lyn.config.ts
+import { defineConfig } from "lyn/config";
+
+export default defineConfig({
+  database: {
+    schema: "./src/database/schema.ts",
+    migrations: "./migrations",
+  },
+});
+```
+
+Paths are relative to the project root. You don't need a
+`drizzle.config.ts`: Lyn passes the dialect, the paths and the
+[`snake_case` column names](#column-names) to drizzle-kit for you.
+
 ## Connection string
 
 By default Lyn reads `DATABASE_URL`. Pass `url` to use something else — a
@@ -203,7 +251,7 @@ Point the app at a test database with `url`, and call it through
 
 ::: info Not supported yet
 - Databases other than Postgres. Lyn uses Bun's built-in Postgres driver.
-- Migrations. Until the `lyn` CLI ships, create your tables with
-  `drizzle-kit` (set `casing: "snake_case"` in its config) or plain SQL.
+- Running migrations on `listen()`. Run `lyn db migrate` before starting
+  the app.
 - Connection pool options.
 :::

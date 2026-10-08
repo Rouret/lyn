@@ -11,9 +11,11 @@
     "-lintignore"
   ],
   "ignoreDependencies": [
-    "pino-pretty"
+    "pino-pretty",
+    "drizzle-kit"
   ],
   "entry": [
-    "src/db.ts"
+    "src/db.ts",
+    "src/config.ts"
   ]
 }

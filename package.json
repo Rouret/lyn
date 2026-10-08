@@ -1,6 +1,9 @@
 {
   "name": "lyn",
   "module": "src/index.ts",
+  "bin": {
+    "lyn": "src/cli/index.ts"
+  },
   "type": "module",
   "version": "0.0.1",
   "engines": {
@@ -35,11 +38,18 @@
     "@types/bun": "latest",
     "@types/node": "^25.0.3",
     "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.11",
     "knip": "^5.79.0",
     "vitepress": "^1.6.4"
   },
   "peerDependencies": {
+    "drizzle-kit": "^0.31.11",
     "typescript": "^5.9.3"
+  },
+  "peerDependenciesMeta": {
+    "drizzle-kit": {
+      "optional": true
+    }
   },
   "dependencies": {
     "better-auth": "^1.4.10",

@@ -72,6 +72,11 @@ Requires Bun `>= 1.3.6` (`engines` in `package.json`).
 ```
 src/
   index.ts     Lyn class (route builder, handle, listen/stop/url, db), public exports: Lyn, z, logger, LynEnvError, LynDatabaseError
+  config.ts    public `lyn/config` entry: defineConfig + LynCliConfig (lyn.config.ts for the CLI)
+  cli/
+    index.ts     `lyn` bin (package.json "bin"): parses `lyn db <generate|migrate|studio>`, sets process.exitCode
+    config.ts    loadDatabasePaths: optional lyn.config.ts, defaults src/db/schema.ts and drizzle/
+    db.ts        generate / studio → drizzle-kit (temp config, URL read from env), migrate → drizzle-orm migrator
   db.ts        public `lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
   features/
     feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
@@ -233,6 +238,24 @@ change ships with `@ts-expect-error` / `satisfies` cases in
 - body: any `ZodType`
 - params: `z.object` of `ZodString | ZodNumber`
 - query: `z.object` of `ZodString | ZodNumber | ZodBoolean` (optionally `.optional()`)
+
+### CLI (`src/cli/`)
+
+- `lyn db generate | studio` spawn drizzle-kit's `bin.cjs` with
+  `bun --bun`, from the project's `node_modules` (searched upwards, never
+  auto-installed). drizzle-kit is an **optional peer dependency**: missing
+  → error telling to `bun add -d drizzle-kit`. Lyn writes a temporary
+  `drizzle.config.ts` (dialect, absolute schema/out paths,
+  `casing: "snake_case"`, `process.env.DATABASE_URL`) and deletes it after;
+  the URL is never written to disk. Extra args are passed through.
+- `lyn db migrate` uses `drizzle-orm/bun-sql/migrator` directly, so
+  production installs don't need drizzle-kit.
+- `DATABASE_URL` is read through `parseEnvs` (same `LynEnvError` format);
+  Bun loads `.env` from the cwd.
+- Tests (`test/cli.test.ts`) run the CLI as a subprocess in temp projects
+  whose `node_modules` is a symlink to the repo's.
+- `lyn db studio` uses the `pg` driver (drizzle-kit picks it): keep `pg`
+  until Studio can use another driver.
 
 ### Env (`src/env.ts`)
 
@@ -405,6 +428,6 @@ the bad ones, and check that the good ones are still true.
 ## Roadmap (from README)
 
 Done: routes, lifecycle, body/params/query validation, logger, env vars,
-CORS, Postgres with Drizzle, documentation.
-Todo: CLI and migrations, auth (better-auth, see `src/lib/auth.ts`), example
+CORS, Postgres with Drizzle, documentation, CLI and migrations.
+Todo: auth (better-auth, see `src/lib/auth.ts`), example
 project, security checklist, publish.

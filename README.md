@@ -57,7 +57,7 @@ to use it from a clone.
 - [x] CORS
 - [x] Postgres with Drizzle
 - [x] Documentation
-- [ ] CLI and migrations
+- [x] CLI and migrations
 - [ ] Authentication
 - [ ] Example project
 - [ ] Security checklist

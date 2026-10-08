@@ -42,7 +42,7 @@ export class LynDatabaseError extends Error {
   }
 }
 
-const DATABASE_URL_ENV_CONFIG = {
+export const DATABASE_URL_ENV_CONFIG = {
   databaseUrl: { name: "DATABASE_URL", type: "string" },
 } as const;
 

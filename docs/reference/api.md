@@ -8,6 +8,7 @@ explains it.
 ```ts
 import { Lyn, z, logger, LynEnvError, LynDatabaseError } from "lyn";
 import { pgTable, text, eq, sql /* … */ } from "lyn/db";
+import { defineConfig } from "lyn/config";
 ```
 
 | Export | Description |
@@ -18,6 +19,7 @@ import { pgTable, text, eq, sql /* … */ } from "lyn/db";
 | `LynEnvError` | Thrown by `new Lyn()` on invalid environment variables · [Environment variables](../configuration/environment-variables.md#when-something-is-wrong) |
 | `LynDatabaseError` | Thrown by `listen()` when the database is unreachable · [Database](../integrations/database.md#startup-and-shutdown) |
 | `lyn/db` | Everything from `drizzle-orm` and `drizzle-orm/pg-core` · [Database](../integrations/database.md) |
+| `lyn/config` | `defineConfig` for an optional `lyn.config.ts` · [Migrations](../integrations/database.md#other-paths) |
 
 ## `new Lyn(config?)`
 
@@ -71,3 +73,13 @@ See [Handlers](../essentials/handlers.md).
 `VALIDATION`, `NO_BODY`, `INVALID_JSON`, `UNSUPPORTED_MEDIA_TYPE`,
 `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `CONFLICT`, `INTERNAL_SERVER_ERROR`.
 See [Errors](../essentials/errors.md#error-codes).
+
+## CLI
+
+| Command | Description |
+| --- | --- |
+| `lyn db generate` | Writes the SQL migrations for your schema changes. Needs `drizzle-kit`. |
+| `lyn db migrate` | Applies the pending migrations to `DATABASE_URL`. |
+| `lyn db studio` | Opens Drizzle Studio on `DATABASE_URL`. Needs `drizzle-kit`. |
+
+See [Migrations](../integrations/database.md#migrations).
