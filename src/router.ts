@@ -48,6 +48,22 @@ const assertValidPath = (path: RoutePath) => {
     throw new Error(`Wildcard must be the last segment: ${path}`);
 };
 
+const assertParamsSchemaMatchesPath = (
+  route: Route<any, any, any>,
+  paramNames: string[]
+) => {
+  const schemaKeys = Object.keys(route.validation?.params?.shape ?? {});
+  const unknownKeys = schemaKeys.filter((key) => !paramNames.includes(key));
+  if (unknownKeys.length === 0) return;
+
+  const quotedKeys = unknownKeys.map((key) => `"${key}"`).join(", ");
+  const notParams =
+    unknownKeys.length === 1 ? "which is not a param" : "which are not params";
+  throw new Error(
+    `Params schema of ${route.method} ${route.path} declares ${quotedKeys}, ${notParams} of the path`
+  );
+};
+
 const findNode = (
   node: RouteNode,
   segments: string[],
@@ -93,6 +109,8 @@ export const createRouter = () => {
         node = child;
       }
     }
+
+    assertParamsSchemaMatchesPath(route, paramNames);
 
     if (node.routesByMethod.has(route.method))
       throw new Error(

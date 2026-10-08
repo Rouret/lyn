@@ -5,7 +5,6 @@ import {
   MethodNotAllowedError,
   NoBodyError,
   NotFoundError,
-  NoParamsError,
   ValidationError,
 } from "#/error";
 import { internalLogger } from "#/logger";
@@ -172,10 +171,6 @@ const handleRequest = async <
 
   // Params Validation
   if (validation?.params) {
-    if (Object.keys(params).length === 0) {
-      throw new NoParamsError();
-    }
-
     const { error, data } = parseParams(params, validation.params);
     if (error) {
       throw new ValidationError(error);

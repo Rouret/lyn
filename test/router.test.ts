@@ -1,14 +1,17 @@
 import { createRouter } from "#/router";
 import type { Route } from "#/types";
 import { describe, expect, it } from "bun:test";
+import z from "zod";
 
-const route = (method: Route["method"], path: string): Route => ({
+type AnyRoute = Route<any, any, any>;
+
+const route = (method: Route["method"], path: string): AnyRoute => ({
   method,
   path,
   handler: () => path,
 });
 
-const routerWith = (...routes: Route[]) => {
+const routerWith = (...routes: AnyRoute[]) => {
   const router = createRouter();
   routes.forEach((r) => router.add(r));
   return router;
@@ -148,6 +151,39 @@ describe("router", () => {
   it("rejects a wildcard that is not the last segment", () => {
     expect(() => routerWith(route("GET", "/files/*/meta"))).toThrow(
       "Wildcard must be the last segment: /files/*/meta"
+    );
+  });
+
+  it("accepts a params schema whose keys are all params of the path", () => {
+    expect(() =>
+      routerWith({
+        ...route("GET", "/users/:id/posts/:slug"),
+        validation: { params: z.object({ id: z.number(), slug: z.string() }) },
+      })
+    ).not.toThrow();
+  });
+
+  it("rejects a params schema on a path without params", () => {
+    expect(() =>
+      routerWith({
+        ...route("GET", "/users"),
+        validation: { params: z.object({ id: z.string() }) },
+      })
+    ).toThrow(
+      'Params schema of GET /users declares "id", which is not a param of the path'
+    );
+  });
+
+  it("rejects params schema keys that do not match the path params", () => {
+    expect(() =>
+      routerWith({
+        ...route("GET", "/users/:id"),
+        validation: {
+          params: z.object({ userId: z.string(), slug: z.string() }),
+        },
+      })
+    ).toThrow(
+      'Params schema of GET /users/:id declares "userId", "slug", which are not params of the path'
     );
   });
 });

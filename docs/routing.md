@@ -59,6 +59,8 @@ Registration errors are thrown immediately, before the server starts:
 - wildcard not last → `Wildcard must be the last segment: /files/*/meta`
 - same method and path twice (`/users/:id` and `/users/:userId` count as the
   same path) → `Route GET /users/:userId is already registered`
+- params schema key that is not a `:param` of the path →
+  `Params schema of GET /users/:id declares "userId", which is not a param of the path`
 
 ## Handlers and the context
 

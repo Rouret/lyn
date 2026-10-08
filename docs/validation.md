@@ -66,9 +66,21 @@ converted with `Number(value)` first, then the object is validated with
 })
 ```
 
-| Situation                          | Response              |
-| ---------------------------------- | --------------------- |
-| Route has no params                | `400` `NO_PARAMS`     |
+Every key of the schema must be a `:param` of the path. This is checked
+when the route is registered, so a typo fails at startup instead of on every
+request:
+
+```ts
+new Lyn().get("/users/:id", handler, {
+  params: z.object({ userId: z.string() }),
+});
+// Error: Params schema of GET /users/:id declares "userId", which is not a param of the path
+```
+
+Path params that are not in the schema are left out of `params`.
+
+| Situation                                                   | Response           |
+| ----------------------------------------------------------- | ------------------ |
 | Params do not match the schema (`/users/abc`, `/users/4.5` with `.int()`) | `400` `VALIDATION` |
 
 ## Query

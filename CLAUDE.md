@@ -58,7 +58,7 @@ src/
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, exits(1) on invalid/missing
-  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, NO_PARAMS, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
+  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
   logger.ts    `logger` (for users) and `internalLogger` (prefixed "[Lyn]")
   utils.ts     getDefaultStatusFromMethod
   lib/auth.ts  better-auth stub, not imported anywhere yet
@@ -92,8 +92,8 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 - `createRouter()` → `{ add(route), match(method, pathname) }`.
 - Trie of path segments. Each node has `staticChildren`, one `paramChild`,
   one `wildcardChild`, and `routesByMethod`.
-- `add` throws on: empty path, missing leading `/`, `*` not last, same method
-  on the same shape (`/:id` and `/:userId` share the param node → duplicate).
+- `add` throws on: empty path, missing leading `/`, `*` not last, a params
+  schema key that is not a `:param` of the path, same method on the same shape (`/:id` and `/:userId` share the param node → duplicate).
   Param names are stored per route, so different names at one position work.
 - `match` walks depth-first with backtracking, priority static > param >
   wildcard. Empty segments are dropped (trailing/double slashes ignored).
@@ -112,7 +112,7 @@ handleRequestLifecycle
   └─ set = { headers: new Headers(), status: default for method }
   └─ handleRequest
        body   → requires request.body, request.body.json(), schema.safeParse  → NO_BODY / VALIDATION
-       params → requires ≥1 param, parseParams: coerce per field, safeParse   → NO_PARAMS / VALIDATION
+       params → parseParams: coerce per field, safeParse                       → VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
        return handler(context)   (awaited, so async handlers work)
   └─ handleResponse: string → text/plain, anything else → Response.json
