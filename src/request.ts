@@ -7,17 +7,7 @@ import {
   ValidationError,
 } from "#/error";
 import type { RequestLogger } from "#/request-log";
-import type {
-  Context,
-  ParamsSchema,
-  PotentialAnySchema,
-  QuerySchema,
-  Route,
-  RouteHandler,
-  RouteHandlerBodyResponse,
-  SetDefinition,
-  Validation,
-} from "#/types";
+import type { Route, RouteHandlerBodyResponse, SetDefinition } from "#/types";
 import { readJsonBody } from "#/body";
 import { parseParams } from "#/params";
 import { parseQuery } from "#/query";
@@ -33,15 +23,29 @@ import type { ZodSafeParseResult } from "zod";
                            | (on error)                                 |
                            -> handleError ------------------------------
  */
-export const handleRouteMatch = (
-  request: Request,
-  pathname: string,
-  match: RouteMatch,
-  log: RequestLogger
-): Promise<Response> | Response => {
+type AnyRoute = Route<any, any, any, any>;
+
+type RequestDispatch = {
+  request: Request;
+  pathname: string;
+  match: RouteMatch;
+  log: RequestLogger;
+  appContext: Record<string, unknown>;
+};
+
+export const handleRouteMatch = ({
+  request,
+  pathname,
+  match,
+  log,
+  appContext,
+}: RequestDispatch): Promise<Response> | Response => {
   switch (match.status) {
     case "found":
-      return handleRequestLifecycle(request, match.route, match.params, log);
+      return handleRequestLifecycle(request, match.route, match.params, {
+        log,
+        appContext,
+      });
     case "method_not_allowed":
       if (request.method === "OPTIONS") {
         return new Response(null, {
@@ -59,9 +63,9 @@ export const handleRouteMatch = (
 
 const handleRequestLifecycle = async (
   request: Request,
-  route: Route,
+  route: AnyRoute,
   params: Record<string, string>,
-  log: RequestLogger
+  { log, appContext }: Pick<RequestDispatch, "log" | "appContext">
 ): Promise<Response> => {
   try {
     const set: SetDefinition = {
@@ -69,13 +73,10 @@ const handleRequestLifecycle = async (
       status: getDefaultStatusFromMethod(route.method),
     };
 
-    const responseBody = await handleRequest(
-      request,
-      params,
-      route.handler,
+    const responseBody = await handleRequest(request, params, route, {
       set,
-      route.validation
-    );
+      appContext,
+    });
 
     return handleResponse(responseBody, set.headers, set.status);
   } catch (error: unknown) {
@@ -114,16 +115,11 @@ const dataOrThrow = <T>(result: ZodSafeParseResult<T>): T => {
   return result.data;
 };
 
-const handleRequest = async <
-  TBodySchema extends PotentialAnySchema,
-  TParamsSchema extends ParamsSchema,
-  TQuerySchema extends QuerySchema
->(
+const handleRequest = async (
   request: Request,
   params: Record<string, string>,
-  routeHandler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
-  set: SetDefinition,
-  validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
+  { handler, validation }: AnyRoute,
+  { set, appContext }: { set: SetDefinition; appContext: Record<string, unknown> }
 ): Promise<RouteHandlerBodyResponse> => {
   const validatedInput: { body?: unknown; params?: unknown; query?: unknown } =
     {};
@@ -146,12 +142,7 @@ const handleRequest = async <
     );
   }
 
-  const context = { request, set, ...validatedInput } as Context<
-    TBodySchema,
-    TParamsSchema,
-    TQuerySchema
-  >;
-  return routeHandler(context);
+  return handler({ ...appContext, request, set, ...validatedInput });
 };
 
 const handleError = (error: LynError): Response => {

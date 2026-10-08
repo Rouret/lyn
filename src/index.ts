@@ -1,6 +1,28 @@
+import {
+  LynEnvError,
+  lynEnvConfig,
+  parseEnvs,
+  type EnvConfig,
+  type LynEnv,
+} from "#/env";
+import { createCorsFeature } from "#/features/cors";
+import {
+  createDatabase,
+  createDatabaseFeature,
+  DATABASE_URL_ENV_CONFIG,
+  LynDatabaseError,
+  NO_DATABASE_MESSAGE,
+  needsDatabaseUrlFromEnv,
+  resolveDatabaseUrl,
+  type Database,
+  type DatabaseContext,
+  type DatabaseOf,
+  type DatabaseSchema,
+} from "#/features/database";
+import type { Feature } from "#/features/feature";
 import { internalLogger, logger } from "#/logger";
-import { logRequest, resolveRequestId } from "#/request-log";
 import { handleRouteMatch } from "#/request";
+import { logRequest, resolveRequestId } from "#/request-log";
 import { createRouter } from "#/router";
 import type {
   LynConfig,
@@ -15,14 +37,6 @@ import type {
 import type { Server } from "bun";
 import z from "zod";
 import packageJson from "../package.json";
-import {
-  LynEnvError,
-  lynEnvConfig,
-  parseEnv,
-  type EnvConfig,
-  type LynEnv,
-} from "#/env";
-import { applyCors, assertValidCorsConfig } from "#/cors";
 
 const VERSION = packageJson.version as string;
 
@@ -32,19 +46,31 @@ const DEFAULT_LYN_CONFIG: Pick<LynConfig, "start"> = {
   },
 };
 
-class Lyn<TEnvConfig extends EnvConfig = {}> {
+type ServerStatus = "stopped" | "starting" | "running";
+
+const isDefined = <T>(value: T | undefined): value is T => value !== undefined;
+
+class Lyn<
+  TEnvConfig extends EnvConfig = {},
+  TSchema extends DatabaseSchema | undefined = undefined
+> {
   private router = createRouter();
   private server: Server<unknown> | null = null;
   private baseUrl: string | null = null;
-  private config: LynConfig<TEnvConfig>;
+  private status: ServerStatus = "stopped";
+  private config: LynConfig<TEnvConfig, TSchema>;
+  private readonly database: Database | undefined;
+  private readonly features: Feature[];
+  private readonly appContext: Record<string, unknown>;
   public readonly env: LynEnv<TEnvConfig>;
 
-  constructor(config: LynConfig<TEnvConfig> = {}) {
+  constructor(config: LynConfig<TEnvConfig, TSchema> = {}) {
     // TODO: create a lyn.config.ts file to store the config
-    this.env = parseEnv({
-      ...lynEnvConfig,
-      ...config.env,
-    }) as LynEnv<TEnvConfig>;
+    const [env, databaseEnv] = parseEnvs(
+      { ...lynEnvConfig, ...config.env },
+      needsDatabaseUrlFromEnv(config.database) ? DATABASE_URL_ENV_CONFIG : {}
+    );
+    this.env = env as LynEnv<TEnvConfig>;
 
     this.config = {
       ...DEFAULT_LYN_CONFIG,
@@ -53,7 +79,34 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
 
     internalLogger.info("All environment variables are valid");
 
-    if (this.config.cors) assertValidCorsConfig(this.config.cors);
+    this.database = config.database
+      ? createDatabase(
+          config.database.schema as DatabaseSchema,
+          resolveDatabaseUrl(
+            config.database,
+            this.env,
+            (databaseEnv as Partial<{ databaseUrl: string }>).databaseUrl
+          )
+        )
+      : undefined;
+
+    this.features = [
+      this.database && createDatabaseFeature(this.database),
+      createCorsFeature(config.cors),
+    ].filter(isDefined);
+    this.appContext = Object.assign(
+      {},
+      ...this.features.map((feature) => feature.context)
+    );
+  }
+
+  /**
+   * The Drizzle instance, typed from `database.schema`. Same instance as
+   * `ctx.db` in handlers; use it in scripts, seeds and tests.
+   */
+  get db(): DatabaseOf<TSchema> {
+    if (!this.database) throw new Error(NO_DATABASE_MESSAGE);
+    return this.database as DatabaseOf<TSchema>;
   }
 
   get<
@@ -61,10 +114,15 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
     TQuerySchema extends QuerySchema = undefined
   >(
     path: RoutePath,
-    handler: RouteHandler<undefined, TParamsSchema, TQuerySchema>,
+    handler: RouteHandler<
+      undefined,
+      TParamsSchema,
+      TQuerySchema,
+      DatabaseContext<TSchema>
+    >,
     validation?: Validation<undefined, TParamsSchema, TQuerySchema>
   ) {
-    this.addRoute({ path, handler, validation: validation, method: "GET" });
+    this.addRoute({ path, handler, validation, method: "GET" });
     return this;
   }
 
@@ -74,7 +132,12 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
     TQuerySchema extends QuerySchema = undefined
   >(
     path: RoutePath,
-    handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
+    handler: RouteHandler<
+      TBodySchema,
+      TParamsSchema,
+      TQuerySchema,
+      DatabaseContext<TSchema>
+    >,
     validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
   ) {
     this.addRoute({ path, handler, validation, method: "POST" });
@@ -87,7 +150,12 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
     TQuerySchema extends QuerySchema = undefined
   >(
     path: RoutePath,
-    handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
+    handler: RouteHandler<
+      TBodySchema,
+      TParamsSchema,
+      TQuerySchema,
+      DatabaseContext<TSchema>
+    >,
     validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
   ) {
     this.addRoute({ path, handler, validation, method: "DELETE" });
@@ -100,14 +168,19 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
     TQuerySchema extends QuerySchema = undefined
   >(
     path: RoutePath,
-    handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>,
+    handler: RouteHandler<
+      TBodySchema,
+      TParamsSchema,
+      TQuerySchema,
+      DatabaseContext<TSchema>
+    >,
     validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
   ) {
     this.addRoute({ path, handler, validation, method: "PUT" });
     return this;
   }
 
-  private addRoute(route: Route<any, any, any>) {
+  private addRoute(route: Route<any, any, any, any>) {
     this.router.add(route);
   }
 
@@ -117,15 +190,17 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
     const requestLogger = internalLogger.child({ requestId });
     const { pathname } = new URL(request.url);
 
-    const routedResponse = await handleRouteMatch(
+    const routedResponse = await handleRouteMatch({
       request,
       pathname,
-      this.router.match(request.method, pathname),
-      requestLogger
+      match: this.router.match(request.method, pathname),
+      log: requestLogger,
+      appContext: this.appContext,
+    });
+    const response = this.features.reduce(
+      (current, feature) => feature.onResponse?.(request, current) ?? current,
+      routedResponse
     );
-    const response = this.config.cors
-      ? applyCors(request, routedResponse, this.config.cors)
-      : routedResponse;
     response.headers.set("X-Request-Id", requestId);
 
     logRequest(requestLogger, {
@@ -137,19 +212,30 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
     return response;
   }
 
-  listen(port: number = 0) {
+  async listen(port: number = 0): Promise<this> {
     if (typeof Bun === "undefined")
       throw new Error("Lyn can only be used on Bun");
-    if (this.server)
+    if (this.status === "running")
       throw new Error(
         `Server is already running on ${this.url}. Call stop() before listening again.`
       );
+    if (this.status === "starting")
+      throw new Error("Server is already starting.");
+
+    this.status = "starting";
+    try {
+      for (const feature of this.features) await feature.onStart?.();
+    } catch (error) {
+      this.status = "stopped";
+      throw error;
+    }
 
     this.server = Bun.serve({
       port,
       fetch: (request) => this.handle(request),
       idleTimeout: 30,
     });
+    this.status = "running";
 
     if (!this.config.start?.hideLynLogo) {
       console.log(`
@@ -195,7 +281,9 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
       this.server = null;
       this.baseUrl = null;
     }
+    this.status = "stopped";
+    for (const feature of [...this.features].reverse()) await feature.onStop?.();
   }
 }
 
-export { logger, Lyn, LynEnvError, z };
+export { logger, Lyn, LynDatabaseError, LynEnvError, z };

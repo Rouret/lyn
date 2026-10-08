@@ -1,3 +1,5 @@
+import type { Feature } from "#/features/feature";
+
 export type CorsConfig = {
   /**
    * Origins allowed to call the API from a browser: `"*"` for any origin,
@@ -16,7 +18,7 @@ export type CorsConfig = {
 
 const DEFAULT_MAX_AGE_SECONDS = 600;
 
-export const assertValidCorsConfig = (config: CorsConfig) => {
+const assertValidCorsConfig = (config: CorsConfig) => {
   if (config.origin === "*" && config.credentials)
     throw new Error(
       'CORS origin "*" cannot be used with credentials: list the allowed origins instead'
@@ -53,7 +55,7 @@ const setPreflightHeaders = (
   );
 };
 
-export const applyCors = (
+const applyCors = (
   request: Request,
   response: Response,
   config: CorsConfig
@@ -78,4 +80,14 @@ export const applyCors = (
   }
 
   return response;
+};
+
+export const createCorsFeature = (
+  config: CorsConfig | undefined
+): Feature | undefined => {
+  if (!config) return undefined;
+  assertValidCorsConfig(config);
+  return {
+    onResponse: (request, response) => applyCors(request, response, config),
+  };
 };

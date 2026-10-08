@@ -16,7 +16,7 @@ const fakeUsers: User[] = [
   },
 ];
 
-new Lyn()
+await new Lyn()
   .get("/text", () => {
     return "Hello World";
   })

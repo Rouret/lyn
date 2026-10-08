@@ -1,5 +1,6 @@
-import type { CorsConfig } from "#/cors";
-import type { EnvConfig } from "#/env";
+import type { EnvConfig, LynEnv } from "#/env";
+import type { CorsConfig } from "#/features/cors";
+import type { DatabaseConfig, DatabaseSchema } from "#/features/database";
 
 import z, { ZodType } from "zod";
 
@@ -16,7 +17,10 @@ export type LynSupportedMethods = keyof typeof LYN_SUPPORTED_METHODS;
 
 /* Core */
 
-export type LynConfig<TEnvConfig extends EnvConfig = {}> = {
+export type LynConfig<
+  TEnvConfig extends EnvConfig = {},
+  TSchema extends DatabaseSchema | undefined = undefined
+> = {
   /**
    * Environment variables to load and check at startup, in addition to
    * NODE_ENV. Parsed values are typed on `app.env`.
@@ -31,6 +35,15 @@ export type LynConfig<TEnvConfig extends EnvConfig = {}> = {
    * new Lyn({ cors: { origin: ["https://app.example.com"], credentials: true } })
    */
   cors?: CorsConfig;
+  /**
+   * Postgres through Drizzle. `ctx.db` and `app.db` are the Drizzle instance,
+   * typed from `schema`. The connection is checked by `listen()` and closed
+   * by `stop()`.
+   * @example
+   * import * as schema from "./db/schema";
+   * new Lyn({ database: { schema } }) // reads DATABASE_URL
+   */
+  database?: DatabaseConfig<TSchema, LynEnv<TEnvConfig>>;
   start?: {
     /**
      * Remove the beautiful ascii art logo when the server starts
@@ -86,10 +99,12 @@ export type ParamsContext<TSchema extends ParamsSchema> =
 export type Context<
   TBodySchema extends PotentialAnySchema,
   TParamsSchema extends ParamsSchema,
-  TQuerySchema extends QuerySchema
+  TQuerySchema extends QuerySchema,
+  TAppContext = {}
 > = BodyContext<TBodySchema> &
   QueryContext<TQuerySchema> &
-  ParamsContext<TParamsSchema> & {
+  ParamsContext<TParamsSchema> &
+  TAppContext & {
     request: Request;
     set: SetDefinition;
   };
@@ -107,19 +122,21 @@ export type RouteHandlerBodyResponse = string | object | null | void;
 export type RouteHandler<
   TBodySchema extends PotentialAnySchema = undefined,
   TParamsSchema extends ParamsSchema = undefined,
-  TQuerySchema extends QuerySchema = undefined
+  TQuerySchema extends QuerySchema = undefined,
+  TAppContext = {}
 > = (
-  ctx: Context<TBodySchema, TParamsSchema, TQuerySchema>
+  ctx: Context<TBodySchema, TParamsSchema, TQuerySchema, TAppContext>
 ) => RouteHandlerBodyResponse;
 
 export type RoutePath = string;
 export type Route<
   TBodySchema extends PotentialAnySchema = undefined,
   TParamsSchema extends ParamsSchema = undefined,
-  TQuerySchema extends QuerySchema = undefined
+  TQuerySchema extends QuerySchema = undefined,
+  TAppContext = {}
 > = {
   path: RoutePath;
-  handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema>;
+  handler: RouteHandler<TBodySchema, TParamsSchema, TQuerySchema, TAppContext>;
   validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>;
   method: LynSupportedMethods;
 };

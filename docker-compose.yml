@@ -32,6 +32,23 @@ services:
       - postgres
     restart: unless-stopped
 
+  postgres-test:
+    container_name: lyn_postgres_test
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: lyn
+      POSTGRES_PASSWORD: lyn
+      POSTGRES_DB: lyn_test
+    ports:
+      - "54329:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lyn -d lyn_test"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
 networks:
   postgres:
     driver: bridge

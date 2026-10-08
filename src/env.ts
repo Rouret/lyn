@@ -53,9 +53,7 @@ export type LynEnv<TEnvConfig extends EnvConfig = {}> = InferEnv<
   typeof lynEnvConfig & TEnvConfig
 >;
 
-export const parseEnv = <TConfig extends EnvConfig>(
-  config: TConfig
-): InferEnv<TConfig> => {
+const readEnv = (config: EnvConfig) => {
   const env: Record<string, unknown> = {};
   const problems: string[] = [];
 
@@ -76,6 +74,16 @@ export const parseEnv = <TConfig extends EnvConfig>(
     env[key] = data;
   }
 
+  return { env, problems };
+};
+
+export const parseEnvs = <TConfigs extends EnvConfig[]>(
+  ...configs: TConfigs
+): { [Index in keyof TConfigs]: InferEnv<TConfigs[Index]> } => {
+  const results = configs.map(readEnv);
+  const problems = results.flatMap((result) => result.problems);
   if (problems.length > 0) throw new LynEnvError(problems);
-  return env as InferEnv<TConfig>;
+  return results.map((result) => result.env) as {
+    [Index in keyof TConfigs]: InferEnv<TConfigs[Index]>;
+  };
 };

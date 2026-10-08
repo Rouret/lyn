@@ -12,5 +12,8 @@
   ],
   "ignoreDependencies": [
     "pino-pretty"
+  ],
+  "entry": [
+    "src/db.ts"
   ]
 }

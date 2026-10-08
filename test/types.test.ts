@@ -2,6 +2,7 @@ import { Lyn } from "#/index";
 import { expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import z from "zod";
+import * as databaseSchema from "test/fixtures/schema";
 
 it("only exposes the context fields that have a schema", () => {
   new Lyn(TEST_LYN_CONFIG)
@@ -65,4 +66,50 @@ it("types app.env from the env config", () => {
       else Bun.env[name] = value;
     }
   }
+});
+
+it("types ctx.db and app.db from the database schema", () => {
+  Bun.env.LYN_TEST_TYPES_PG_URL = "postgres://lyn:lyn@127.0.0.1:1/lyn";
+  try {
+    const app = new Lyn({
+      ...TEST_LYN_CONFIG,
+      env: { postgresUrl: { name: "LYN_TEST_TYPES_PG_URL", type: "string" } },
+      database: {
+        schema: databaseSchema,
+        url: (env) => {
+          env.postgresUrl satisfies string;
+          // @ts-expect-error undeclared variables are not passed to url
+          env.databaseUrl;
+          return "postgres://lyn:lyn@127.0.0.1:1/lyn";
+        },
+      },
+    }).get("/users", async ({ db }) => {
+      const users = await db.query.users.findMany();
+      users[0]?.email satisfies string | undefined;
+      users[0]?.displayName satisfies string | null | undefined;
+      // @ts-expect-error unknown columns are type errors
+      users[0]?.password;
+      // @ts-expect-error unknown tables are type errors
+      db.query.posts;
+      return users;
+    });
+
+    app.db.select().from(databaseSchema.users) satisfies Promise<unknown[]>;
+    expect(app).toBeDefined();
+  } finally {
+    delete Bun.env.LYN_TEST_TYPES_PG_URL;
+  }
+});
+
+it("leaves db out of apps without a database", () => {
+  const app = new Lyn(TEST_LYN_CONFIG).get("/", (context) => {
+    // @ts-expect-error db is absent without a database
+    context.db;
+    return "ok";
+  });
+
+  expect(() => {
+    // @ts-expect-error app.db is unusable without a database
+    app.db.select();
+  }).toThrow();
 });

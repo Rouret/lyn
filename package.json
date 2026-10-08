@@ -25,7 +25,8 @@
   "scripts": {
     "dev": "bun --hot run testing/local.ts",
     "deadcode": "knip",
-    "test": "NODE_ENV=lyn-test bun test"
+    "test": "NODE_ENV=lyn-test bun test",
+    "test:db": "docker compose up -d --wait postgres-test && NODE_ENV=lyn-test TEST_DATABASE_URL=postgres://lyn:lyn@localhost:54329/lyn_test bun test"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -38,6 +39,7 @@
   },
   "dependencies": {
     "better-auth": "^1.4.10",
+    "drizzle-orm": "^0.45.4",
     "pg": "^8.16.3",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.3",

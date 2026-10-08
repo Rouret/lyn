@@ -1,6 +1,8 @@
-import { parseEnv, LynEnvError, lynEnvConfig } from "#/env";
+import { LynEnvError, lynEnvConfig, parseEnvs, type EnvConfig } from "#/env";
 import { Lyn } from "#/index";
 import { describe, it, expect, spyOn } from "bun:test";
+
+const parseEnv = (config: EnvConfig) => parseEnvs(config)[0];
 
 const withEnv = (values: Record<string, string | undefined>, run: () => void) => {
   const previousValues = Object.fromEntries(

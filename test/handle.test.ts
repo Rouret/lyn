@@ -103,7 +103,7 @@ describe("handle", () => {
 
 describe("listen", () => {
   it("serves the same routes over HTTP", async () => {
-    const app = new Lyn(TEST_LYN_CONFIG)
+    const app = await new Lyn(TEST_LYN_CONFIG)
       .get("/users/:id", ({ params }) => ({ id: params.id }), {
         params: z.object({ id: z.string() }),
       })
@@ -121,10 +121,10 @@ describe("listen", () => {
   });
 
   it("refuses to listen while already running", async () => {
-    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok").listen();
+    const app = await new Lyn(TEST_LYN_CONFIG).get("/", () => "ok").listen();
 
     try {
-      expect(() => app.listen()).toThrow(
+      await expect(app.listen()).rejects.toThrow(
         `Server is already running on ${app.url}. Call stop() before listening again.`
       );
     } finally {
@@ -135,9 +135,9 @@ describe("listen", () => {
   it("can listen again after stop", async () => {
     const app = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok");
 
-    app.listen();
+    await app.listen();
     await app.stop();
-    app.listen();
+    await app.listen();
 
     try {
       expect(await (await fetch(app.url)).text()).toBe("ok");
@@ -151,7 +151,7 @@ describe("listen", () => {
     const listenersBefore = process.listenerCount("beforeExit");
 
     for (let restart = 0; restart < 3; restart++) {
-      app.listen();
+      await app.listen();
       expect(process.listenerCount("beforeExit")).toBe(listenersBefore + 1);
       await app.stop();
     }
@@ -159,4 +159,3 @@ describe("listen", () => {
     expect(process.listenerCount("beforeExit")).toBe(listenersBefore);
   });
 });
-
