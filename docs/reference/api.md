@@ -69,5 +69,5 @@ See [Handlers](../essentials/handlers.md).
 ## Error codes
 
 `VALIDATION`, `NO_BODY`, `INVALID_JSON`, `UNSUPPORTED_MEDIA_TYPE`,
-`NOT_FOUND`, `METHOD_NOT_ALLOWED`, `INTERNAL_SERVER_ERROR`.
+`NOT_FOUND`, `METHOD_NOT_ALLOWED`, `CONFLICT`, `INTERNAL_SERVER_ERROR`.
 See [Errors](../essentials/errors.md#error-codes).
