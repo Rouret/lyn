@@ -93,26 +93,8 @@ bun run docs:dev
 
 ## Releases
 
-Releases are automated by [release-please](https://github.com/googleapis/release-please)
-(`.github/workflows/release.yml`) and are **off** until the repository
-variable `RELEASE_ENABLED` is set to `true` in the GitHub settings.
-
-Once enabled:
-
-- Every push to `main` updates a release pull request: the next version
-  in `package.json` and `.release-please-manifest.json`, and
-  `CHANGELOG.md`, all computed from the Conventional Commits. Before 1.0,
-  a breaking change bumps the minor and a `feat` bumps the patch.
-- Merging that pull request tags `vX.Y.Z` and creates the GitHub release.
-  The `publish` job then runs `bun run check:package`, packs with
-  `bun pm pack`, and uploads that tarball with
-  `npm publish --provenance`. This is the only place npm is used:
-  `bun publish` can't sign provenance.
-- `publish` authenticates through npm trusted publishing (OIDC, no token
-  stored). Add the trusted publisher (`Rouret/lyn`, `release.yml`) in the
-  package settings on npmjs.com before enabling releases. npm only allows
-  this once the package exists, so the very first version has to be
-  published by hand.
+There is no release automation. Only the maintainer publishes, by hand,
+once `bun run check:package` passes.
 
 ## Commits
 

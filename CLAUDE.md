@@ -106,7 +106,6 @@ test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG) + fixtures/ 
 testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built on app.handle)
 scripts/build.ts  `bun run build`: Bun.build + tsc (tsconfig.build.json) → dist/
 scripts/check-package.ts  `bun run check:package`: consumer smoke test of the packed tarball (CI job `package`)
-release-please-config.json, .release-please-manifest.json  release-please (workflow release.yml, off unless RELEASE_ENABLED)
 docs/          user documentation (VitePress site, one folder per sidebar category)
 CONTRIBUTING.md  maintainer workflow and doc-writing rules
 ```
@@ -287,11 +286,8 @@ change ships with `@ts-expect-error` / `satisfies` cases in
   JSON patch on the consumer's drizzle-orm (one instance), `lyn --help`
   and `lyn db generate` with a `lyn.config.ts`. Run it after any change to
   the build, `package.json` or an entry point.
-- Releases: `.github/workflows/release.yml` (release-please, then
-  `bun pm pack` + `npm publish --provenance`) only runs when the repository
-  variable `RELEASE_ENABLED` is `true`. That upload is the single allowed
-  use of npm, because `bun publish` can't sign provenance. Never enable it
-  or publish without the maintainer: see CONTRIBUTING.md "Releases".
+- No release automation: only the maintainer publishes, by hand. Never
+  publish or add a release workflow without being asked.
 
 ### CLI (`src/cli/`)
 
