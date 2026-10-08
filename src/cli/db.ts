@@ -1,10 +1,9 @@
-import { displayPath, loadDatabasePaths, type DatabasePaths } from "#/cli/config";
+import { displayPath, loadDatabasePaths, type DatabasePaths } from "#/project-config";
 import { parseEnvs } from "#/env";
 import { DATABASE_URL_ENV_CONFIG } from "#/features/database";
+import { applyMigrations, assertMigrationsExist } from "#/migrations";
 import { SQL } from "bun";
-import { drizzle } from "drizzle-orm/bun-sql";
-import { migrate } from "drizzle-orm/bun-sql/migrator";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -65,25 +64,15 @@ const runDrizzleKit = async (
   }
 };
 
-const assertMigrationsExist = (paths: DatabasePaths) => {
-  const hasMigrations =
-    existsSync(paths.migrations) &&
-    readdirSync(paths.migrations).some((file) => file.endsWith(".sql"));
-  if (!hasMigrations)
-    throw new Error(
-      `No migrations in ${displayPath(paths, paths.migrations)}: run \`lyn db generate\` first`
-    );
-};
-
-const applyMigrations = async (paths: DatabasePaths): Promise<number> => {
+const migrateDatabase = async (paths: DatabasePaths): Promise<number> => {
   const url = readDatabaseUrl();
   assertMigrationsExist(paths);
 
-  const db = drizzle({ client: new SQL(url), casing: "snake_case" });
+  const client = new SQL(url);
   try {
-    await migrate(db, { migrationsFolder: paths.migrations });
+    await applyMigrations(client, paths.migrations);
   } finally {
-    await db.$client.close();
+    await client.close();
   }
   console.log(`Migrations from ${displayPath(paths, paths.migrations)} applied`);
   return 0;
@@ -99,7 +88,7 @@ export const runDbCommand = async (
     case "generate":
       return runDrizzleKit("generate", paths, args);
     case "migrate":
-      return applyMigrations(paths);
+      return migrateDatabase(paths);
     case "studio":
       readDatabaseUrl();
       return runDrizzleKit("studio", paths, args);

@@ -1,7 +1,11 @@
 import { ConflictError, InvalidValueError, type LynError } from "#/error";
 import type { Feature, FeatureDefinition } from "#/features/feature";
+import { internalLogger } from "#/logger";
+import { applyMigrations, assertMigrationsExist } from "#/migrations";
+import { loadDatabasePaths } from "#/project-config";
+import { currentRequestLog } from "#/request-log";
 import { SQL } from "bun";
-import { sql } from "drizzle-orm";
+import { sql, type Logger } from "drizzle-orm";
 import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
 
 export type DatabaseSchema = Record<string, unknown>;
@@ -20,6 +24,36 @@ export type DatabaseConfig<TSchema, TEnv> = {
    * Defaults to the `DATABASE_URL` environment variable.
    */
   url?: string | ((env: TEnv) => string);
+  /** Connection pool. Defaults: 10 connections, 30 s idle timeout, 10 s connection timeout. */
+  pool?: DatabasePoolConfig;
+  /**
+   * Log every SQL query at info level, with the request id. Parameters are
+   * never logged, only their count. Defaults to `false`.
+   */
+  logQueries?: boolean;
+  /**
+   * Apply the pending migrations in `listen()`, before serving. Instances
+   * starting together wait for each other. Defaults to `false`: run
+   * `lyn db migrate` instead when you deploy several instances.
+   */
+  migrateOnStart?: boolean;
+};
+
+export type DatabasePoolConfig = {
+  /** Maximum number of open connections. */
+  max?: number;
+  /** Seconds before an idle connection is closed. `0` keeps it open. */
+  idleTimeout?: number;
+  /** Seconds to wait when opening a connection. */
+  connectionTimeout?: number;
+  /** Seconds before a connection is replaced. `0` keeps it forever. */
+  maxLifetime?: number;
+};
+
+const DEFAULT_POOL: DatabasePoolConfig = {
+  max: 10,
+  idleTimeout: 30,
+  connectionTimeout: 10,
 };
 
 export const NO_DATABASE_MESSAGE =
@@ -60,8 +94,40 @@ const resolveDatabaseUrl = <TEnv>(
   return url;
 };
 
-const createDatabase = (schema: DatabaseSchema, url: string): Database =>
-  drizzle({ client: new SQL(url), schema, casing: "snake_case" });
+const queryLogger: Logger = {
+  logQuery: (query, params) =>
+    (currentRequestLog() ?? internalLogger).info(
+      { query, paramCount: params.length },
+      "SQL query"
+    ),
+};
+
+const createDatabase = (
+  {
+    schema,
+    pool,
+    logQueries,
+  }: Pick<DatabaseConfig<DatabaseSchema, never>, "schema" | "pool" | "logQueries">,
+  url: string
+): Database => {
+  return drizzle({
+    client: new SQL(url, { ...DEFAULT_POOL, ...pool }),
+    schema,
+    casing: "snake_case",
+    logger: logQueries ? queryLogger : false,
+  });
+};
+
+const migrateOnStart = async (db: Database) => {
+  const paths = await loadDatabasePaths(process.cwd());
+  try {
+    assertMigrationsExist(paths);
+    await applyMigrations(db.$client, paths.migrations);
+  } catch (error) {
+    throw new LynDatabaseError(`migrateOnStart failed: ${failureReason(error)}`);
+  }
+  internalLogger.info("Migrations applied");
+};
 
 const POSTGRES_ERRORS: Record<string, () => LynError> = {
   "23505": () => new ConflictError("A record with this value already exists"),
@@ -82,12 +148,15 @@ const mapPostgresError = (error: unknown): LynError | undefined => {
   return sqlState ? POSTGRES_ERRORS[sqlState]?.() : undefined;
 };
 
-const connectionFailureReason = (error: unknown): string => {
-  const cause = error instanceof Error ? error.cause : undefined;
-  return cause instanceof Error ? cause.message : "unknown error";
+const failureReason = (error: unknown): string => {
+  if (!(error instanceof Error)) return "unknown error";
+  return error.cause instanceof Error ? error.cause.message : error.message;
 };
 
-const createDatabaseFeature = (db: Database): Feature => {
+const createDatabaseFeature = (
+  db: Database,
+  { migrateOnStart: shouldMigrateOnStart }: { migrateOnStart?: boolean }
+): Feature => {
   let isClosed = false;
 
   return {
@@ -101,9 +170,10 @@ const createDatabaseFeature = (db: Database): Feature => {
         await db.execute(sql`select 1`);
       } catch (error) {
         throw new LynDatabaseError(
-          `Cannot connect to the database: ${connectionFailureReason(error)}`
+          `Cannot connect to the database: ${failureReason(error)}`
         );
       }
+      if (shouldMigrateOnStart) await migrateOnStart(db);
     },
     onStop: async () => {
       isClosed = true;
@@ -119,10 +189,8 @@ export const databaseFeature: FeatureDefinition = ({ database }) => {
     env: database.url === undefined ? DATABASE_URL_ENV_CONFIG : undefined,
     create: ({ app, own }) =>
       createDatabaseFeature(
-        createDatabase(
-          database.schema,
-          resolveDatabaseUrl(database, app, own.databaseUrl)
-        )
+        createDatabase(database, resolveDatabaseUrl(database, app, own.databaseUrl)),
+        database
       ),
   };
 };

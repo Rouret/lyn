@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 type LogMethod = (fields: object, message: string) => void;
 
 export type RequestLogger = {
@@ -35,3 +37,11 @@ export const logRequest = (log: RequestLogger, entry: RequestLogEntry) => {
     `${entry.method} ${entry.path} ${entry.status} ${durationMs}ms`
   );
 };
+
+const requestLogStorage = new AsyncLocalStorage<RequestLogger>();
+
+export const runWithRequestLog = <T>(log: RequestLogger, run: () => T): T =>
+  requestLogStorage.run(log, run);
+
+export const currentRequestLog = (): RequestLogger | undefined =>
+  requestLogStorage.getStore();

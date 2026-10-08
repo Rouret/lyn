@@ -17,7 +17,7 @@ import {
 import type { Feature } from "#/features/feature";
 import { internalLogger, logger } from "#/logger";
 import { handleRouteMatch } from "#/request";
-import { logRequest, resolveRequestId } from "#/request-log";
+import { logRequest, resolveRequestId, runWithRequestLog } from "#/request-log";
 import { createRouter } from "#/router";
 import { forgetOnShutdownSignal, stopOnShutdownSignal } from "#/shutdown";
 import type {
@@ -186,14 +186,16 @@ class Lyn<
     const requestLogger = internalLogger.child({ requestId });
     const { pathname } = new URL(request.url);
 
-    const routedResponse = await handleRouteMatch({
-      request,
-      pathname,
-      match: this.router.match(request.method, pathname),
-      log: requestLogger,
-      appContext: this.appContext,
-      mapError: this.mapError,
-    });
+    const routedResponse = await runWithRequestLog(requestLogger, () =>
+      handleRouteMatch({
+        request,
+        pathname,
+        match: this.router.match(request.method, pathname),
+        log: requestLogger,
+        appContext: this.appContext,
+        mapError: this.mapError,
+      })
+    );
     const response = this.features.reduce(
       (current, feature) => feature.onResponse?.(request, current) ?? current,
       routedResponse

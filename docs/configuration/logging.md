@@ -28,6 +28,8 @@ The level follows the status: `info` below `400`, `warn` for `4xx`,
 
 Lyn's own messages start with `[Lyn]`.
 
+To also log each SQL query, see [Query logs](../integrations/database.md#query-logs).
+
 ## Request ids
 
 Each request gets an id, sent back in the `X-Request-Id` response header and

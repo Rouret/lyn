@@ -174,6 +174,44 @@ new Lyn({
 
 When `url` is given, `DATABASE_URL` is not required.
 
+## Connection pool
+
+Lyn keeps a pool of connections. Change its limits with `pool`:
+
+```ts
+new Lyn({
+  database: {
+    schema,
+    pool: {
+      max: 20,               // connections, default 10
+      idleTimeout: 60,       // seconds before closing an idle connection, default 30
+      connectionTimeout: 5,  // seconds to wait when connecting, default 10
+      maxLifetime: 3600,     // seconds before replacing a connection, default 0 (never)
+    },
+  },
+});
+```
+
+Keep `max` × your number of instances below the `max_connections` of your
+Postgres server.
+
+## Query logs
+
+Set `logQueries` to log every SQL query at `info` level, with the
+[request id](../configuration/logging.md#request-ids) of the request that
+ran it:
+
+```ts
+new Lyn({ database: { schema, logQueries: true } });
+```
+
+```json
+{"level":30,"requestId":"43297dd3-…","query":"select \"id\", \"email\" from \"users\" where \"users\".\"id\" = $1","paramCount":1,"msg":"[Lyn] SQL query"}
+```
+
+The values of the parameters are never logged, only their count: they
+may hold personal data or secrets. Off by default.
+
 ## Startup and shutdown
 
 ```ts
@@ -195,6 +233,25 @@ create a new Lyn instance to connect again`.
 
 The connection is opened on the first query, so `app.handle()` works
 without `listen()`, which is handy in tests.
+
+### Migrating on start
+
+With `migrateOnStart`, `listen()` also applies the pending
+[migrations](#migrations) before serving:
+
+```ts
+new Lyn({ database: { schema, migrateOnStart: true } });
+```
+
+It reads the migrations folder from `drizzle/`, or from your
+[`lyn.config.ts`](#other-paths), relative to the directory you start the
+app from. If a migration fails, `listen()` rejects with a
+`LynDatabaseError` and the server doesn't start. Instances starting
+together wait for each other, so each migration runs once.
+
+Handy for prototypes and single-instance apps. With several instances,
+prefer running `lyn db migrate` once in your deploy pipeline. Off by
+default.
 
 ## Database errors
 
@@ -251,7 +308,5 @@ Point the app at a test database with `url`, and call it through
 
 ::: info Not supported yet
 - Databases other than Postgres. Lyn uses Bun's built-in Postgres driver.
-- Running migrations on `listen()`. Run `lyn db migrate` before starting
-  the app.
-- Connection pool options.
+- Changing the column [casing](#column-names).
 :::

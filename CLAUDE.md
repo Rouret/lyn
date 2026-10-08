@@ -75,8 +75,9 @@ src/
   config.ts    public `lyn/config` entry: defineConfig + LynCliConfig (lyn.config.ts for the CLI)
   cli/
     index.ts     `lyn` bin (package.json "bin"): parses `lyn db <generate|migrate|studio>`, sets process.exitCode
-    config.ts    loadDatabasePaths: optional lyn.config.ts, defaults src/db/schema.ts and drizzle/
-    db.ts        generate / studio → drizzle-kit (temp config, URL read from env), migrate → drizzle-orm migrator
+    db.ts        generate / studio → drizzle-kit (temp config, URL read from env), migrate → src/migrations.ts
+  project-config.ts  loadDatabasePaths: optional lyn.config.ts (cwd), defaults src/db/schema.ts and drizzle/ (CLI + migrateOnStart)
+  migrations.ts  assertMigrationsExist, applyMigrations (drizzle migrator on a reserved connection holding pg_advisory_lock)
   db.ts        public `lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
   features/
     feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
@@ -87,7 +88,8 @@ src/
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
   params.ts    parseParams: coerceValue on router params, safeParse
   body.ts      readJsonBody: NO_BODY, JSON content type (415), JSON.parse (INVALID_JSON)
-  request-log.ts  resolveRequestId (safe incoming X-Request-Id or UUID), logRequest (level by status)
+  request-log.ts  resolveRequestId (safe incoming X-Request-Id or UUID), logRequest (level by status),
+               runWithRequestLog / currentRequestLog (AsyncLocalStorage set by handle(), used by query logs)
   shutdown.ts  one shared SIGINT/SIGTERM listener: stops every running app, then re-raises the signal
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
@@ -210,6 +212,15 @@ Users only see `new Lyn({ … })` options.
   Never wrap it. Drizzle errors' `message` contains the SQL and parameters:
   never forward it to clients.
 - Drizzle is imported statically (~10 ms, measured): no lazy loading.
+- `pool` → `new SQL(url, { ...DEFAULT_POOL, ...pool })`; Lyn's defaults
+  (max 10, idleTimeout 30 s, connectionTimeout 10 s) are explicit so the
+  docs don't depend on Bun's.
+- `logQueries` → Drizzle `logger` writing `{ query, paramCount }` at info
+  on `currentRequestLog()` (request id) or `internalLogger` outside a
+  request. Never log parameter values.
+- `migrateOnStart` → `onStart`, after the ping: `loadDatabasePaths(process.cwd())`
+  then `applyMigrations` (advisory lock, so concurrent instances migrate
+  once); failures → `LynDatabaseError("migrateOnStart failed: …")`.
 
 ### CORS (`src/features/cors.ts`)
 
