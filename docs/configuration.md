@@ -50,11 +50,12 @@ const app = new Lyn({
 
 | `type`      | Accepted values                     | Parsed to |
 | ----------- | ----------------------------------- | --------- |
-| `"string"`  | any defined value                   | `string`  |
-| `"number"`  | anything `Number()` can convert     | `number`  |
-| `"boolean"` | `true`, `false`, `1`, `0`           | `boolean` |
+| `"string"`  | any non-blank value, kept as is     | `string`  |
+| `"number"`  | a number, surrounding spaces ignored (`" 42 "`, `-1.5`) | `number`  |
+| `"boolean"` | exactly `true`, `false`, `1` or `0` | `boolean` |
 
-All declared variables are required. Bun loads `.env`, `.env.local` and
+All declared variables are required. An empty or blank value (`PORT=`)
+counts as missing, so it can't silently become `0` or `""`. Bun loads `.env`, `.env.local` and
 `.env.<NODE_ENV>` automatically, so you can keep them in a `.env` file
 (already git-ignored).
 

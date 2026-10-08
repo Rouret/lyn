@@ -14,18 +14,20 @@ type EnvNames = "env";
 export type EnvConfig = Record<string, EnvConfigItem>;
 type InternalEnvConfig = Record<EnvNames, EnvConfigItem>;
 
-const zBooleanFromEnv = z.string().transform((value) => {
-  if (value === "true" || value === "1") return true;
-  if (value === "false" || value === "0") return false;
-  throw new Error(`Invalid boolean value: ${value}`);
-});
+const zNonBlankString = z.string().refine((value) => value.trim() !== "");
+
+const zNumberFromEnv = z.string().trim().min(1).pipe(z.coerce.number());
+
+const zBooleanFromEnv = z
+  .enum(["true", "1", "false", "0"])
+  .transform((value) => value === "true" || value === "1");
 
 const getZodTypeFromEnvType = (type: EnvType) => {
   switch (type) {
     case "string":
-      return z.string();
+      return zNonBlankString;
     case "number":
-      return z.coerce.number();
+      return zNumberFromEnv;
     case "boolean":
       return zBooleanFromEnv;
     default:
