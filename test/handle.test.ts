@@ -1,4 +1,4 @@
-import { Lyn } from "#/index";
+import { Lyn } from "#lyn/index";
 import { describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import { createTestClient } from "testing/utilsTest";

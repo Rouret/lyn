@@ -25,10 +25,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    "baseUrl": ".",
-    "paths": {
-      "#/*": ["./src/*"]
-    }
+    "baseUrl": "."
   },
   "exclude": ["node_modules", "examples"]
 }

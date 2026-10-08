@@ -1,5 +1,5 @@
-import { sql } from "#/db";
-import { Lyn, LynDatabaseError } from "#/index";
+import { sql } from "#lyn/db";
+import { Lyn, LynDatabaseError } from "#lyn/index";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

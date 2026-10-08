@@ -1,5 +1,5 @@
-import { LynEnvError, lynEnvConfig, parseEnvs, type EnvConfig } from "#/env";
-import { Lyn } from "#/index";
+import { LynEnvError, lynEnvConfig, parseEnvs, type EnvConfig } from "#lyn/env";
+import { Lyn } from "#lyn/index";
 import { describe, it, expect, spyOn } from "bun:test";
 
 const parseEnv = (config: EnvConfig) => parseEnvs(config)[0];

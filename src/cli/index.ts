@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { DB_COMMANDS, runDbCommand, type DbCommand } from "#/cli/db";
-import { EXIT_CODE } from "#/cli/exit-code";
+import { DB_COMMANDS, runDbCommand, type DbCommand } from "#lyn/cli/db";
+import { EXIT_CODE } from "#lyn/cli/exit-code";
 
 const USAGE = `Usage: lyn db <command> [drizzle-kit flags]
 

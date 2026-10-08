@@ -1,5 +1,5 @@
-import type { FeatureDefinition } from "#/features/feature";
-import { HTTP_STATUS } from "#/http-status";
+import type { FeatureDefinition } from "#lyn/features/feature";
+import { HTTP_STATUS } from "#lyn/http-status";
 
 export type CorsConfig = {
   /**

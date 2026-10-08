@@ -1,5 +1,5 @@
-import { LynEnvError } from "#/env";
-import { createLoggerOptions } from "#/logger";
+import { LynEnvError } from "#lyn/env";
+import { createLoggerOptions } from "#lyn/logger";
 import { describe, expect, it } from "bun:test";
 
 describe("createLoggerOptions", () => {

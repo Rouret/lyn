@@ -1,5 +1,5 @@
-import { coerceValue } from "#/coerce";
-import type { QuerySchema } from "#/types";
+import { coerceValue } from "#lyn/coerce";
+import type { QuerySchema } from "#lyn/types";
 import type { ZodType } from "zod";
 
 const readField = (

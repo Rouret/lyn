@@ -1,5 +1,5 @@
-import { createRouter } from "#/router";
-import type { Route } from "#/types";
+import { createRouter } from "#lyn/router";
+import type { Route } from "#lyn/types";
 import { describe, expect, it } from "bun:test";
 import z from "zod";
 

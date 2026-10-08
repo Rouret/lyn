@@ -1,4 +1,4 @@
-import { internalLogger } from "#/logger";
+import { internalLogger } from "#lyn/logger";
 
 type StoppableApp = { stop: () => Promise<void> };
 

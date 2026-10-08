@@ -1,6 +1,6 @@
-import { eq, sql } from "#/db";
-import { LynDatabaseError, LynEnvError } from "#/index";
-import { Lyn, z } from "#/index";
+import { eq, sql } from "#lyn/db";
+import { LynDatabaseError, LynEnvError } from "#lyn/index";
+import { Lyn, z } from "#lyn/index";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import * as schema from "test/fixtures/schema";

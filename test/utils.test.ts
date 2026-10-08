@@ -1,5 +1,5 @@
 import { test, describe, expect } from "bun:test";
-import { getDefaultStatusFromMethod } from "#/utils";
+import { getDefaultStatusFromMethod } from "#lyn/utils";
 
 describe("Unit tests for utils", () => {
   test("getDefaultStatusFromMethod should return 200 for GET", () => {

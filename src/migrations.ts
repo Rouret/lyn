@@ -1,4 +1,4 @@
-import { displayPath, type DatabasePaths } from "#/project-config";
+import { displayPath, type DatabasePaths } from "#lyn/project-config";
 import type { SQL } from "bun";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";

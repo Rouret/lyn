@@ -14,25 +14,23 @@ git clone https://github.com/Rouret/lyn.git
 cd lyn && bun install
 ```
 
-Then map the `@rouret/lyn` imports to the clone in your project's `tsconfig.json`.
-Bun reads these paths at runtime, so no build step is needed. The `#/*`
-entry is Lyn's internal alias: your editor needs it to type-check Lyn's
-code.
+Then map the `@rouret/lyn` imports to the clone in your project's
+`tsconfig.json`. Bun reads these paths at runtime, so no build step is
+needed.
 
 ```json
 {
   "compilerOptions": {
     "paths": {
       "@rouret/lyn": ["../lyn/src/index.ts"],
-      "@rouret/lyn/db": ["../lyn/src/db.ts"],
-      "#/*": ["../lyn/src/*"]
+      "@rouret/lyn/db": ["../lyn/src/db.ts"]
     }
   }
 }
 ```
 
-Every example in this documentation imports from `@rouret/lyn`, as it will once the
-package is published.
+Every example in this documentation imports from `@rouret/lyn`, as it
+will once the package is published.
 
 ## Your first server
 

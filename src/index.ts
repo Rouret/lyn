@@ -4,8 +4,8 @@ import {
   parseEnvs,
   type EnvConfig,
   type LynEnv,
-} from "#/env";
-import { corsFeature } from "#/features/cors";
+} from "#lyn/env";
+import { corsFeature } from "#lyn/features/cors";
 import {
   databaseFeature,
   LynDatabaseError,
@@ -13,13 +13,13 @@ import {
   type DatabaseContext,
   type DatabaseOf,
   type DatabaseSchema,
-} from "#/features/database";
-import type { Feature } from "#/features/feature";
-import { internalLogger, logger } from "#/logger";
-import { handleRouteMatch } from "#/request";
-import { logRequest, resolveRequestId, runWithRequestLog } from "#/request-log";
-import { createRouter } from "#/router";
-import { forgetOnShutdownSignal, stopOnShutdownSignal } from "#/shutdown";
+} from "#lyn/features/database";
+import type { Feature } from "#lyn/features/feature";
+import { internalLogger, logger } from "#lyn/logger";
+import { handleRouteMatch } from "#lyn/request";
+import { logRequest, resolveRequestId, runWithRequestLog } from "#lyn/request-log";
+import { createRouter } from "#lyn/router";
+import { forgetOnShutdownSignal, stopOnShutdownSignal } from "#lyn/shutdown";
 import type {
   LynConfig,
   ParamsSchema,
@@ -29,7 +29,7 @@ import type {
   RouteHandler,
   RoutePath,
   Validation,
-} from "#/types";
+} from "#lyn/types";
 import type { Server } from "bun";
 import z from "zod";
 import packageJson from "../package.json";

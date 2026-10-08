@@ -1,5 +1,5 @@
-import { sql } from "#/db";
-import { Lyn } from "#/index";
+import { sql } from "#lyn/db";
+import { Lyn } from "#lyn/index";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import * as schema from "test/fixtures/schema";
 

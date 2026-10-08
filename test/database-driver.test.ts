@@ -1,5 +1,5 @@
-import { eq, integer, jsonb, json, pgTable, serial, sql, text } from "#/db";
-import { Lyn, z } from "#/index";
+import { eq, integer, jsonb, json, pgTable, serial, sql, text } from "#lyn/db";
+import { Lyn, z } from "#lyn/index";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 

@@ -1,5 +1,5 @@
-import { coerceValue } from "#/coerce";
-import type { ParamsSchema } from "#/types";
+import { coerceValue } from "#lyn/coerce";
+import type { ParamsSchema } from "#lyn/types";
 
 export const parseParams = (
   params: Record<string, string>,

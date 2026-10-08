@@ -1,4 +1,4 @@
-import { isClientError, isServerError } from "#/http-status";
+import { isClientError, isServerError } from "#lyn/http-status";
 import { AsyncLocalStorage } from "node:async_hooks";
 
 type LogMethod = (fields: object, message: string) => void;

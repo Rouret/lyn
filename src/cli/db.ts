@@ -1,8 +1,8 @@
-import { displayPath, loadDatabasePaths, type DatabasePaths } from "#/project-config";
-import { EXIT_CODE } from "#/cli/exit-code";
-import { parseEnvs } from "#/env";
-import { DATABASE_URL_ENV_CONFIG } from "#/features/database";
-import { applyMigrations, assertMigrationsExist } from "#/migrations";
+import { displayPath, loadDatabasePaths, type DatabasePaths } from "#lyn/project-config";
+import { EXIT_CODE } from "#lyn/cli/exit-code";
+import { parseEnvs } from "#lyn/env";
+import { DATABASE_URL_ENV_CONFIG } from "#lyn/features/database";
+import { applyMigrations, assertMigrationsExist } from "#lyn/migrations";
 import { SQL } from "bun";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";

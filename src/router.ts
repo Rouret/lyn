@@ -1,4 +1,4 @@
-import type { LynSupportedMethods, Route, RoutePath } from "#/types";
+import type { LynSupportedMethods, Route, RoutePath } from "#lyn/types";
 
 type RouteParams = Record<string, string>;
 

@@ -107,7 +107,9 @@ docs/          user documentation (VitePress site, one folder per sidebar catego
 CONTRIBUTING.md  maintainer workflow and doc-writing rules
 ```
 
-Imports inside `src/` use the `#/*` → `./src/*` alias from `tsconfig.json`.
+Imports inside `src/` use the `#lyn/*` → `./src/*.ts` subpath import from
+the `package.json` `imports` map (not tsconfig `paths`, which consumers'
+`tsc` ignores).
 Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 
 ## Architecture

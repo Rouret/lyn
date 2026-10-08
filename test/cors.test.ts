@@ -1,5 +1,5 @@
-import { Lyn } from "#/index";
-import type { LynConfig } from "#/types";
+import { Lyn } from "#lyn/index";
+import type { LynConfig } from "#lyn/types";
 import { describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import z from "zod";

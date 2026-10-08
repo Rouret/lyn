@@ -1,4 +1,4 @@
-import { LynEnvError } from "#/env";
+import { LynEnvError } from "#lyn/env";
 import pino, { type LevelWithSilent, type LoggerOptions } from "pino";
 
 const LOG_LEVELS: LevelWithSilent[] = [

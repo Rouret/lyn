@@ -1,5 +1,5 @@
-import { Lyn } from "#/index";
-import { logRequest, resolveRequestId } from "#/request-log";
+import { Lyn } from "#lyn/index";
+import { logRequest, resolveRequestId } from "#lyn/request-log";
 import { describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 

@@ -1,4 +1,4 @@
-import { InvalidJsonError, NoBodyError, UnsupportedMediaTypeError } from "#/error";
+import { InvalidJsonError, NoBodyError, UnsupportedMediaTypeError } from "#lyn/error";
 
 const isJsonMediaType = (contentType: string): boolean => {
   const mediaType = contentType.split(";")[0]!.trim().toLowerCase();

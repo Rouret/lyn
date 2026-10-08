@@ -14,12 +14,11 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "types": ["bun"],
-    // TODO(lyn): Lyn has no `exports` map and its `#/` alias doesn't
-    // resolve for consumers, so the example points at Lyn's sources.
+    // TODO(lyn): Lyn has no `exports` map yet, so the example points at
+    // Lyn's sources.
     "paths": {
       "@rouret/lyn": ["../../src/index.ts"],
-      "@rouret/lyn/db": ["../../src/db.ts"],
-      "#/*": ["../../src/*"]
+      "@rouret/lyn/db": ["../../src/db.ts"]
     }
   }
 }

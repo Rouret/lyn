@@ -1,6 +1,6 @@
-import type { EnvConfig, LynEnv } from "#/env";
-import type { CorsConfig } from "#/features/cors";
-import type { DatabaseConfig, DatabaseSchema } from "#/features/database";
+import type { EnvConfig, LynEnv } from "#lyn/env";
+import type { CorsConfig } from "#lyn/features/cors";
+import type { DatabaseConfig, DatabaseSchema } from "#lyn/features/database";
 
 import z, { ZodType } from "zod";
 

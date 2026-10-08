@@ -1,5 +1,5 @@
-import { HTTP_STATUS } from "#/http-status";
-import type { LynSupportedMethods } from "#/types";
+import { HTTP_STATUS } from "#lyn/http-status";
+import type { LynSupportedMethods } from "#lyn/types";
 import type { ZodError } from "zod";
 
 export class LynError extends Error {

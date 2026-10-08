@@ -1,6 +1,6 @@
-import type { EnvConfig, LynEnv } from "#/env";
-import type { LynError } from "#/error";
-import type { LynConfig } from "#/types";
+import type { EnvConfig, LynEnv } from "#lyn/env";
+import type { LynError } from "#lyn/error";
+import type { LynConfig } from "#lyn/types";
 
 export type Feature = {
   context?: Record<string, unknown>;

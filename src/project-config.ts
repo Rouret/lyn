@@ -1,4 +1,4 @@
-import type { LynCliConfig } from "#/config";
+import type { LynCliConfig } from "#lyn/config";
 import { join, relative, resolve } from "node:path";
 
 const CONFIG_FILE = "lyn.config.ts";

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "#/db";
+import { pgTable, text, timestamp, uuid } from "#lyn/db";
 
 export const users = pgTable("users", {
   id: uuid().primaryKey().defaultRandom(),
