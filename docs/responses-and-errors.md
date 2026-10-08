@@ -6,12 +6,12 @@ Whatever the handler returns becomes the response body:
 
 | Returned value          | Body                 | `Content-Type`       |
 | ----------------------- | -------------------- | -------------------- |
-| `string`                | the string           | `text/plain`         |
+| `string`                | the string           | `text/plain; charset=utf-8` |
 | object, array or `null` | `JSON.stringify(...)`| `application/json`   |
 | nothing (`undefined`)   | empty                | none                 |
 
 ```ts
-.get("/text", () => "Hello")            // text/plain
+.get("/text", () => "Hello")            // text/plain; charset=utf-8
 .get("/json", () => ({ hello: "world" })) // application/json
 .post("/jobs", ({ set }) => {           // empty body, 202
   set.status = 202;

@@ -116,7 +116,7 @@ handleRequestLifecycle
        params → parseParams: coerce per field, safeParse                       → VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
        return handler(context)   (awaited, so async handlers work)
-  └─ handleResponse: undefined → empty body, no Content-Type; string → text/plain; anything else → Response.json
+  └─ handleResponse: undefined → empty body, no Content-Type; string → text/plain; charset=utf-8; anything else → Response.json
        always sets Content-Type and Access-Control-Allow-Origin: *
   └─ catch: isLynError → handleError(error) ; else log + InternalServerError (500, no details leaked)
 

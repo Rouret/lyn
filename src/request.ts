@@ -108,7 +108,7 @@ const handleResponse = (
   }
 
   if (typeof bodyResponse === "string") {
-    setDefaultContentType(headers, "text/plain");
+    setDefaultContentType(headers, "text/plain; charset=utf-8");
     return new Response(bodyResponse, { headers, status });
   }
 

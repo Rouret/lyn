@@ -21,7 +21,27 @@ describe("Content type", () => {
     expect(response.headers.get("content-type")).toBe("application/json");
 
     const response2 = await client.get("/text");
-    expect(response2.headers.get("content-type")).toBe("text/plain");
+    expect(response2.headers.get("content-type")).toBe(
+      "text/plain; charset=utf-8"
+    );
+  });
+});
+
+describe("Text encoding", () => {
+  it("declares UTF-8 so non-ASCII text decodes correctly", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => "héllo ✓ 日本");
+
+    const response = await createTestClient(app).get("/");
+    const declaredCharset = response.headers
+      .get("content-type")
+      ?.split("charset=")[1];
+    const decoder = new TextDecoder(
+      (declaredCharset ?? "iso-8859-1") as ConstructorParameters<
+        typeof TextDecoder
+      >[0]
+    );
+
+    expect(decoder.decode(await response.arrayBuffer())).toBe("héllo ✓ 日本");
   });
 });
 
