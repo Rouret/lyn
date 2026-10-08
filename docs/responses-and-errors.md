@@ -42,9 +42,16 @@ Each request gets a mutable `set` object in its context:
 
 - `set.status` starts at the method's default: GET 200, POST 201, PUT 200,
   DELETE 204.
-- `set.headers` is a standard `Headers` instance. `Content-Type` and
-  `Access-Control-Allow-Origin` are set by Lyn after your handler runs and
-  override your values.
+- `set.headers` is a standard `Headers` instance. A `Content-Type` you set
+  is kept; Lyn only fills it in when you didn't. `Access-Control-Allow-Origin`
+  is always set to `*` after your handler runs.
+
+```ts
+.get("/", ({ set }) => {
+  set.headers.set("Content-Type", "text/html; charset=utf-8");
+  return "<h1>Hello</h1>";
+})
+```
 
 > A `204` response has no body, so anything returned from a `.delete()`
 > handler is discarded unless you change `set.status` (e.g. to `200`).

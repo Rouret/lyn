@@ -124,8 +124,9 @@ handleError → Response.json({ code, message, cause }, { status, headers: error
 ```
 
 Default statuses: GET 200, POST 201, PUT 200, DELETE 204. Handlers override
-via `set.status`; `set.headers` is merged, but `Content-Type` and
-`Access-Control-Allow-Origin` are overwritten after the handler.
+via `set.status`; `set.headers` is kept. `Content-Type` is only defaulted
+when the handler did not set it; `Access-Control-Allow-Origin` is always
+overwritten after the handler.
 
 ### Typing
 

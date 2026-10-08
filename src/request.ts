@@ -91,6 +91,10 @@ const handleRequestLifecycle = async (
   }
 };
 
+const setDefaultContentType = (headers: Headers, contentType: string) => {
+  if (!headers.has("Content-Type")) headers.set("Content-Type", contentType);
+};
+
 const handleResponse = (
   bodyResponse: RouteHandlerBodyResponse,
   headers: Headers,
@@ -104,11 +108,11 @@ const handleResponse = (
   }
 
   if (typeof bodyResponse === "string") {
-    headers.set("Content-Type", "text/plain");
+    setDefaultContentType(headers, "text/plain");
     return new Response(bodyResponse, { headers, status });
   }
 
-  headers.set("Content-Type", "application/json");
+  setDefaultContentType(headers, "application/json");
   return Response.json(bodyResponse, { headers, status });
 };
 

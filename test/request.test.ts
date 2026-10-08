@@ -136,3 +136,34 @@ describe("Handler without a return value", () => {
     expect(await response.text()).toBe("null");
   });
 });
+
+describe("Content type set by the handler", () => {
+  it("keeps a content type set for a string body", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", ({ set }) => {
+      set.headers.set("Content-Type", "text/html; charset=utf-8");
+      return "<h1>Hello</h1>";
+    });
+
+    const response = await createTestClient(app).get("/");
+
+    expect(response.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8"
+    );
+    expect(await response.text()).toBe("<h1>Hello</h1>");
+  });
+
+  it("keeps a content type set for a JSON body", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", ({ set }) => {
+      set.status = 409;
+      set.headers.set("Content-Type", "application/problem+json");
+      return { title: "Conflict" };
+    });
+
+    const response = await createTestClient(app).get("/");
+
+    expect(response.headers.get("content-type")).toBe(
+      "application/problem+json"
+    );
+    expect(await response.json()).toEqual({ title: "Conflict" });
+  });
+});
