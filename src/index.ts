@@ -1,4 +1,5 @@
 import { internalLogger, logger } from "#/logger";
+import { logRequest, resolveRequestId } from "#/request-log";
 import { handleRouteMatch } from "#/request";
 import { createRouter } from "#/router";
 import type {
@@ -111,15 +112,29 @@ class Lyn<TEnvConfig extends EnvConfig = {}> {
   }
 
   async handle(request: Request): Promise<Response> {
+    const startedAt = performance.now();
+    const requestId = resolveRequestId(request);
+    const requestLogger = internalLogger.child({ requestId });
     const { pathname } = new URL(request.url);
-    const response = await handleRouteMatch(
+
+    const routedResponse = await handleRouteMatch(
       request,
       pathname,
-      this.router.match(request.method, pathname)
+      this.router.match(request.method, pathname),
+      requestLogger
     );
-    return this.config.cors
-      ? applyCors(request, response, this.config.cors)
-      : response;
+    const response = this.config.cors
+      ? applyCors(request, routedResponse, this.config.cors)
+      : routedResponse;
+    response.headers.set("X-Request-Id", requestId);
+
+    logRequest(requestLogger, {
+      method: request.method,
+      path: pathname,
+      status: response.status,
+      durationMs: performance.now() - startedAt,
+    });
+    return response;
   }
 
   listen(port: number = 0) {

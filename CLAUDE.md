@@ -57,6 +57,7 @@ src/
   params.ts    parseParams: coerceValue on router params, safeParse
   body.ts      readJsonBody: NO_BODY, JSON content type (415), JSON.parse (INVALID_JSON)
   cors.ts      CorsConfig, assertValidCorsConfig, applyCors (actual + preflight headers)
+  request-log.ts  resolveRequestId (safe incoming X-Request-Id or UUID), logRequest (level by status)
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, throws LynEnvError on invalid/missing
@@ -80,8 +81,11 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 
 - `get/post/put/delete(path, handler, validation?)` add a `Route` to the
   router and return `this`. `get` has no body generic.
-- `handle(request)` is the single entry point: parse pathname →
-  `router.match` → `handleRouteMatch`. Tests and `listen()` both use it.
+- `handle(request)` is the single entry point: request id + child logger →
+  parse pathname → `router.match` → `handleRouteMatch(…, log)` → CORS →
+  `X-Request-Id` header → one `logRequest` line. Tests and `listen()` both
+  use it. Only unexpected errors are logged inside the lifecycle (with the
+  same child logger); LynErrors are covered by the request line.
 - `listen(port = 0)` calls `Bun.serve({ fetch: req => this.handle(req), idleTimeout: 30 })`
   (Bun's native `routes` option is deliberately **not** used, so that
   `handle()` and the server cannot diverge), prints the ASCII logo unless

@@ -6,7 +6,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "#/error";
-import { internalLogger } from "#/logger";
+import type { RequestLogger } from "#/request-log";
 import type {
   Context,
   ParamsSchema,
@@ -33,11 +33,12 @@ import type { ZodSafeParseResult } from "zod";
 export const handleRouteMatch = (
   request: Request,
   pathname: string,
-  match: RouteMatch
+  match: RouteMatch,
+  log: RequestLogger
 ): Promise<Response> | Response => {
   switch (match.status) {
     case "found":
-      return handleRequestLifecycle(request, match.route, match.params);
+      return handleRequestLifecycle(request, match.route, match.params, log);
     case "method_not_allowed":
       if (request.method === "OPTIONS") {
         return new Response(null, {
@@ -56,17 +57,14 @@ export const handleRouteMatch = (
 const handleRequestLifecycle = async (
   request: Request,
   route: Route,
-  params: Record<string, string>
+  params: Record<string, string>,
+  log: RequestLogger
 ): Promise<Response> => {
   try {
     const set: SetDefinition = {
       headers: new Headers(),
       status: getDefaultStatusFromMethod(route.method),
     };
-
-    internalLogger.info(
-      `Handle request: ${request.method} on ${new URL(request.url).pathname}`
-    );
 
     const responseBody = await handleRequest(
       request,
@@ -76,18 +74,12 @@ const handleRequestLifecycle = async (
       route.validation
     );
 
-    const response = handleResponse(responseBody, set.headers, set.status);
-    internalLogger.info(
-      `Return response: ${response.status} for ${request.method} on ${
-        new URL(request.url).pathname
-      }`
-    );
-    return response;
+    return handleResponse(responseBody, set.headers, set.status);
   } catch (error: unknown) {
     if (isLynError(error)) {
       return handleError(error);
     }
-    internalLogger.error(error);
+    log.error({ err: error }, "Unhandled error in route handler");
     return handleError(new InternalServerError());
   }
 };
@@ -160,9 +152,6 @@ const handleRequest = async <
 };
 
 const handleError = (error: LynError): Response => {
-  internalLogger.error(
-    `Handle error: ${error.code} - ${error.message} return status ${error.status}`
-  );
   return Response.json(
     {
       code: error.code,

@@ -25,6 +25,9 @@ No Content response.
 Returning a `Response` object yourself is not supported: it would be
 serialised as JSON.
 
+Every response, errors included, carries an `X-Request-Id` header that
+matches the request's log lines (see [Logging](configuration.md#logging)).
+
 ## Status code and headers: `set`
 
 Each request gets a mutable `set` object in its context:

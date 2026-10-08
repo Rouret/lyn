@@ -148,7 +148,21 @@ variables, read when Lyn is imported:
 | `NODE_ENV`  | `production` → one JSON object per line, ready for log collectors. Anything else → human-readable output via `pino-pretty`. |
 | `LOG_LEVEL` | `fatal`, `error`, `warn`, `info` (default), `debug`, `trace` or `silent`. Any other value throws a `LynEnvError`. |
 
-- **Internal logs** are prefixed `[Lyn]`: startup, requests, errors.
+- **Internal logs** are prefixed `[Lyn]`: startup, one line per request,
+  and the stack trace of unexpected errors.
+- **Request logs**: one line per request with `requestId`, `method`, `path`,
+  `status` and `durationMs`, at `info` for < 400, `warn` for 4xx and
+  `error` for 5xx:
+
+  ```json
+  {"level":30,"requestId":"43297dd3-…","method":"GET","path":"/users","status":200,"durationMs":0.95,"msg":"[Lyn] GET /users 200 0.95ms"}
+  ```
+
+- **Request id**: taken from the incoming `X-Request-Id` header when it is
+  1–128 characters of `A-Z a-z 0-9 . _ -` (e.g. set by a proxy), generated
+  as a UUID otherwise. It is sent back in the `X-Request-Id` response header
+  and attached to every log line of the request, so an error's stack trace
+  can be matched with its request line.
 - **Your logs**: use the exported `logger`. It shares the same level and
   output as Lyn's logs.
 - All logs are disabled when `NODE_ENV=lyn-test`, the value used by Lyn's
