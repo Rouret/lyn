@@ -23,6 +23,7 @@ import { parseParams } from "#/params";
 import { parseQuery } from "#/query";
 import type { RouteMatch } from "#/router";
 import { getDefaultStatusFromMethod } from "#/utils";
+import type { ZodSafeParseResult } from "zod";
 
 /*        | ---------handleRequestLifecycle----------|
  Request -> handleRequest -> handler -> handleResponse -> Response
@@ -113,6 +114,11 @@ const handleResponse = (
   return Response.json(bodyResponse, { headers, status });
 };
 
+const dataOrThrow = <T>(result: ZodSafeParseResult<T>): T => {
+  if (!result.success) throw new ValidationError(result.error);
+  return result.data;
+};
+
 const handleRequest = async <
   TBodySchema extends PotentialAnySchema,
   TParamsSchema extends ParamsSchema,
@@ -124,46 +130,32 @@ const handleRequest = async <
   set: SetDefinition,
   validation?: Validation<TBodySchema, TParamsSchema, TQuerySchema>
 ): Promise<RouteHandlerBodyResponse> => {
-  //@ts-expect-error - We need to assign the body, params and query to the context later
-  const context: Context<TBodySchema, TParamsSchema, TQuerySchema> = {
-    request,
-    set,
-    body: undefined,
-    params: undefined,
-    query: undefined,
-  };
+  const validatedInput: { body?: unknown; params?: unknown; query?: unknown } =
+    {};
 
-  // Valifation Step
-  // Body Validation
   if (validation?.body) {
     const body = await readJsonBody(request);
-    const { error, data } = validation.body.safeParse(body);
-    if (error) {
-      throw new ValidationError(error);
-    }
-
-    context.body = data;
+    validatedInput.body = dataOrThrow(validation.body.safeParse(body));
   }
 
-  // Params Validation
   if (validation?.params) {
-    const { error, data } = parseParams(params, validation.params);
-    if (error) {
-      throw new ValidationError(error);
-    }
-    context.params = data;
+    validatedInput.params = dataOrThrow(
+      parseParams(params, validation.params)
+    );
   }
 
-  // Query Validation
   if (validation?.query) {
     const { searchParams } = new URL(request.url);
-    const { error, data } = parseQuery(searchParams, validation.query);
-    if (error) {
-      throw new ValidationError(error);
-    }
-    context.query = data;
+    validatedInput.query = dataOrThrow(
+      parseQuery(searchParams, validation.query)
+    );
   }
 
+  const context = { request, set, ...validatedInput } as Context<
+    TBodySchema,
+    TParamsSchema,
+    TQuerySchema
+  >;
   return routeHandler(context);
 };
 

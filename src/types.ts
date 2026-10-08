@@ -76,14 +76,14 @@ export type QuerySchema =
   | undefined;
 
 export type QueryContext<TSchema extends QuerySchema> =
-  TSchema extends QuerySchema
+  TSchema extends NonNullable<QuerySchema>
     ? {
         query: z.infer<TSchema>;
       }
     : {};
 
 export type ParamsContext<TSchema extends ParamsSchema> =
-  TSchema extends ParamsSchema
+  TSchema extends NonNullable<ParamsSchema>
     ? {
         params: z.infer<TSchema>;
       }
