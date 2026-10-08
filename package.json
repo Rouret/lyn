@@ -30,6 +30,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "bun --hot run testing/local.ts",
+    "build": "bun run scripts/build.ts",
     "deadcode": "knip",
     "test": "NODE_ENV=lyn-test bun test",
     "test:db": "docker compose up -d --wait postgres-test && NODE_ENV=lyn-test TEST_DATABASE_URL=postgres://lyn:lyn@localhost:54329/lyn_test bun test",
@@ -43,11 +44,11 @@
     "@types/pg": "^8.16.0",
     "drizzle-kit": "^0.31.11",
     "knip": "^5.79.0",
+    "typescript": "^5.9.3",
     "vitepress": "^1.6.4"
   },
   "peerDependencies": {
-    "drizzle-kit": "^0.31.11",
-    "typescript": "^5.9.3"
+    "drizzle-kit": "^0.31.11"
   },
   "peerDependenciesMeta": {
     "drizzle-kit": {

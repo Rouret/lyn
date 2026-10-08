@@ -34,8 +34,8 @@ Bun**. It provides, on top of `Bun.serve`:
 It targets POCs, solopreneurs and agencies: users should write as little
 configuration as possible, and every public API must be precisely typed.
 Auth (better-auth on top of the database) is planned but **not wired in
-yet**. The package is **not published** yet
-(`version 0.0.1`, `module: src/index.ts`, no build step).
+yet**. The package (`@rouret/lyn`, `version 0.0.1`) is **not published**
+yet; `bun run build` writes it to `dist/`.
 
 ## Commands
 
@@ -50,6 +50,7 @@ Always use Bun. Never use node, npm, npx, pnpm, yarn, vite, jest or ts-node.
 | Run one test file          | `NODE_ENV=lyn-test bun test test/validation.test.ts` |
 | Coverage                   | `NODE_ENV=lyn-test bun test --coverage`  |
 | Dead-code check            | `bun run deadcode` (knip)                |
+| Build to `dist/`           | `bun run build`                          |
 | Docs site (hot)            | `bun run docs:dev`                       |
 | Docs build (dead links)    | `bun run docs:build`                     |
 | Type-check                 | `bunx tsc --noEmit`                      |
@@ -103,6 +104,7 @@ src/
   lib/auth.ts  better-auth stub, not imported anywhere yet
 test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG) + fixtures/ (Drizzle schema, SQL)
 testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built on app.handle)
+scripts/build.ts  `bun run build`: Bun.build + tsc (tsconfig.build.json) → dist/
 docs/          user documentation (VitePress site, one folder per sidebar category)
 CONTRIBUTING.md  maintainer workflow and doc-writing rules
 ```
@@ -258,6 +260,18 @@ change ships with `@ts-expect-error` / `satisfies` cases in
 - body: any `ZodType`
 - params: `z.object` of `ZodString | ZodNumber`
 - query: `z.object` of `ZodString | ZodNumber | ZodBoolean` (optionally `.optional()`)
+
+### Build (`scripts/build.ts`)
+
+- `Bun.build` (target bun) bundles the four entries (`index`, `db`,
+  `config`, `cli/index`) to `dist/`. Every `dependencies` and
+  `peerDependencies` package (and its subpaths) stays external: Lyn and the
+  user must share one `drizzle-orm` instance for the JSON patch, and pino
+  loads `pino-pretty` by name. `src/index.ts` imports only `version` from
+  `package.json`, so the rest isn't inlined.
+- `tsc -p tsconfig.build.json` emits the `.d.ts`, then the script rewrites
+  their `#lyn/*` specifiers to relative `./x.js` paths: the `imports` map
+  points at `src/`, which isn't shipped.
 
 ### CLI (`src/cli/`)
 

@@ -27,5 +27,5 @@
     "noPropertyAccessFromIndexSignature": false,
     "baseUrl": "."
   },
-  "exclude": ["node_modules", "examples"]
+  "exclude": ["node_modules", "examples", "dist"]
 }

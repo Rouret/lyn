@@ -18,11 +18,11 @@
         "@types/pg": "^8.16.0",
         "drizzle-kit": "^0.31.11",
         "knip": "^5.79.0",
+        "typescript": "^5.9.3",
         "vitepress": "^1.6.4",
       },
       "peerDependencies": {
         "drizzle-kit": "^0.31.11",
-        "typescript": "^5.9.3",
       },
       "optionalPeers": [
         "drizzle-kit",

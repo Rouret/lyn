@@ -32,9 +32,7 @@ import type {
 } from "#lyn/types";
 import type { Server } from "bun";
 import z from "zod";
-import packageJson from "../package.json";
-
-const VERSION = packageJson.version as string;
+import { version as VERSION } from "../package.json";
 
 const DEFAULT_LYN_CONFIG: Pick<LynConfig, "start"> = {
   start: {
