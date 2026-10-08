@@ -94,6 +94,24 @@ new Lyn()
   .listen(3000);
 ```
 
+Run it (Bun >= 1.3.6, `NODE_ENV` is required):
+
+```bash
+bun install
+NODE_ENV=development bun run dev
+```
+
+### Documentation
+
+- [Getting started](docs/getting-started.md)
+- [Routing](docs/routing.md)
+- [Validation](docs/validation.md)
+- [Responses & errors](docs/responses-and-errors.md)
+- [Configuration](docs/configuration.md) — env variables, logging
+- [Testing](docs/testing.md)
+
+Contributing with an AI agent? See [CLAUDE.md](CLAUDE.md) (also available as `AGENTS.md`).
+
 ### Roadmap:
 
 - [x] Register Routes
@@ -105,7 +123,7 @@ new Lyn()
 - [x] Environment variables
 - [ ] Example Project
 - [ ] Auth
-- [ ] Documentation
+- [x] Documentation
 - [ ] Publish
 - Do a Security Checklist
 
