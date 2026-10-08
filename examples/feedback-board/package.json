@@ -1,19 +1,22 @@
 {
   "name": "feedback-board",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "bun --hot run src/index.ts",
-    "start": "NODE_ENV=production bun run src/index.ts",
-    "seed": "bun run scripts/seed.ts",
-    "db:generate": "bunx --bun drizzle-kit generate",
-    "db:migrate": "bun run scripts/migrate.ts",
-    "typecheck": "tsc --noEmit",
-    "test": "docker compose up -d --wait postgres-test && NODE_ENV=lyn-test TEST_DATABASE_URL=postgres://feedback:feedback@localhost:5434/feedback_board_test bun test"
-  },
   "devDependencies": {
     "@types/bun": "latest",
     "drizzle-kit": "^0.31.11",
     "typescript": "^5.9.3"
+  },
+  "private": true,
+  "scripts": {
+    "dev": "bun --hot run src/index.ts",
+    "start": "NODE_ENV=production bun run src/index.ts",
+    "seed": "bun run scripts/seed.ts",
+    "db:generate": "lyn db generate",
+    "db:migrate": "lyn db migrate",
+    "typecheck": "tsc --noEmit",
+    "test": "docker compose up -d --wait postgres-test && NODE_ENV=lyn-test TEST_DATABASE_URL=postgres://feedback:feedback@localhost:5434/feedback_board_test bun test"
+  },
+  "type": "module",
+  "dependencies": {
+    "@rouret/lyn": "./lyn.tgz"
   }
 }

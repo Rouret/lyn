@@ -23,10 +23,14 @@ It exercises what Lyn gives you out of the box:
 
 ## Run it
 
+Lyn isn't on npm yet: the example installs the package packed from this
+repository (`lyn.tgz`, not committed). Run `bun run pack:example` from the
+repository root again after any change to Lyn.
+
 ```bash
 docker compose up -d postgres   # Postgres on localhost:5433
 cp .env.example .env
-bun install
+(cd ../.. && bun install && bun run pack:example)   # build Lyn, install it here
 bun run db:migrate     # create the tables
 bun run seed           # create the "acme" demo board
 bun run dev            # http://localhost:3000
@@ -68,9 +72,8 @@ src/
   errors.ts         HTTP error helpers
   seed.ts           demo data
 scripts/
-  migrate.ts        applies drizzle/ migrations
   seed.ts           creates the demo board
-drizzle/            generated SQL migrations
+drizzle/            SQL migrations (`bun run db:generate`, applied by `bun run db:migrate`)
 test/               API tests through app.handle()
 ```
 

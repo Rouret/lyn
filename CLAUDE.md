@@ -52,6 +52,7 @@ Always use Bun. Never use node, npm, npx, pnpm, yarn, vite, jest or ts-node.
 | Dead-code check            | `bun run deadcode` (knip)                |
 | Build to `dist/`           | `bun run build`                          |
 | Check the packed package   | `bun run check:package` (pack → publint, attw, consumer project) |
+| Use the build in the example | `bun run pack:example`, then `bun run test` in `examples/feedback-board` |
 | Docs site (hot)            | `bun run docs:dev`                       |
 | Docs build (dead links)    | `bun run docs:build`                     |
 | Type-check                 | `bunx tsc --noEmit`                      |
@@ -106,6 +107,7 @@ test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG) + fixtures/ 
 testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built on app.handle)
 scripts/build.ts  `bun run build`: Bun.build + tsc (tsconfig.build.json) → dist/
 scripts/check-package.ts  `bun run check:package`: consumer smoke test of the packed tarball (CI job `package`)
+scripts/pack-example.ts  `bun run pack:example`: packs Lyn into examples/feedback-board/lyn.tgz (gitignored) and reinstalls it there
 docs/          user documentation (VitePress site, one folder per sidebar category)
 CONTRIBUTING.md  maintainer workflow and doc-writing rules
 ```

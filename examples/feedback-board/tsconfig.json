@@ -13,12 +13,6 @@
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
-    "types": ["bun"],
-    // TODO(lyn): Lyn has no `exports` map yet, so the example points at
-    // Lyn's sources.
-    "paths": {
-      "@rouret/lyn": ["../../src/index.ts"],
-      "@rouret/lyn/db": ["../../src/db.ts"]
-    }
+    "types": ["bun"]
   }
 }

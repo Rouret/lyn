@@ -54,6 +54,7 @@
     "build": "bun run scripts/build.ts",
     "prepack": "bun run build",
     "check:package": "bun run scripts/check-package.ts",
+    "pack:example": "bun run scripts/pack-example.ts",
     "deadcode": "knip",
     "test": "NODE_ENV=lyn-test bun test",
     "test:db": "docker compose up -d --wait postgres-test && NODE_ENV=lyn-test TEST_DATABASE_URL=postgres://lyn:lyn@localhost:54329/lyn_test bun test",

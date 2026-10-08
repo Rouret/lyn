@@ -91,6 +91,16 @@ bun run docs:dev
 - Examples import from `@rouret/lyn` and `@rouret/lyn/db`, never from `src/`.
 - `bun run docs:build` fails on dead links.
 
+## Example project
+
+`examples/feedback-board` installs Lyn the way a user would: from the
+packed tarball, not from `src/`. After a change to Lyn, run
+`bun run pack:example` from the root, then `bun run test` (its own
+Postgres on port 5434) and `bun run typecheck` in the example. Bun keeps
+the copy it already installed from the same tarball path, so the script
+removes and re-adds the package; the example's `bun.lock` changes with
+every new tarball.
+
 ## Releases
 
 There is no release automation. Only the maintainer publishes, by hand,

@@ -1,12 +1,12 @@
 import { sql } from "@rouret/lyn/db";
+import { $ } from "bun";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
-import { migrate } from "drizzle-orm/bun-sql/migrator";
-import { MIGRATIONS_FOLDER } from "../scripts/migrate";
 import { createApp } from "../src/app";
 import { seedDemoBoard } from "../src/seed";
 
 const TEST_DATABASE_URL = Bun.env.TEST_DATABASE_URL;
 const WIDGET_ORIGIN = "https://acme.dev";
+const PROJECT_ROOT = `${import.meta.dir}/..`;
 
 type Post = { id: string; title: string; status: string; voteCount: number };
 type PostPage = { posts: Post[]; page: number; hasMore: boolean };
@@ -46,7 +46,9 @@ describe.skipIf(!TEST_DATABASE_URL)("feedback board", () => {
         drop schema if exists drizzle cascade;
       `)
     );
-    await migrate(app.db, { migrationsFolder: MIGRATIONS_FOLDER });
+    await $`bun x lyn db migrate`
+      .cwd(PROJECT_ROOT)
+      .env({ ...Bun.env, DATABASE_URL: TEST_DATABASE_URL });
   });
 
   beforeEach(async () => {
