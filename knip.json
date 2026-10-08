@@ -15,7 +15,9 @@
     "drizzle-kit"
   ],
   "entry": [
+    "src/index.ts",
     "src/db.ts",
-    "src/config.ts"
+    "src/config.ts",
+    "src/cli/index.ts"
   ]
 }

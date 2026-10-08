@@ -272,6 +272,12 @@ change ships with `@ts-expect-error` / `satisfies` cases in
 - `tsc -p tsconfig.build.json` emits the `.d.ts`, then the script rewrites
   their `#lyn/*` specifiers to relative `./x.js` paths: the `imports` map
   points at `src/`, which isn't shipped.
+- `package.json` `exports` (`.`, `./db`, `./config`, `types` first) and
+  `bin` point at `dist/`; `files: ["dist"]`; `prepack` runs the build, so
+  `bun pm pack` never ships a stale `dist/`. knip can't follow those to
+  `src/`, hence the explicit `entry` list in `knip.json`. Never add
+  `sideEffects: false`: `src/logger.ts` and `src/features/database.ts` run
+  code at import time.
 
 ### CLI (`src/cli/`)
 
