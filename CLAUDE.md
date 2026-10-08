@@ -4,8 +4,17 @@ Guidance for AI coding agents (Claude Code, Cursor, Codex…) working on this
 repository. `AGENTS.md` and `.cursor/rules/use-bun-instead-of-node-vite-npm-pnpm.mdc`
 are symlinks to this file — edit this one only.
 
-User-facing documentation lives in [`docs/`](docs/README.md). Keep it in sync
-when you change public behaviour.
+Documentation is split by audience:
+
+- **Users of Lyn**: the VitePress site in [`docs/`](docs/guide/introduction.md),
+  published to GitHub Pages on every push to `main`. Keep it in sync when
+  you change public behaviour.
+- **Maintainers**: [`CONTRIBUTING.md`](CONTRIBUTING.md) (workflow, checks,
+  doc rules) and this file (architecture, conventions).
+
+Never put repository internals (sandbox, `testing/utilsTest.ts`,
+`NODE_ENV=lyn-test`, Docker, `src/` paths) in `docs/`. Follow the doc rules
+in CONTRIBUTING.md before editing a page.
 
 ## What Lyn is
 
@@ -19,10 +28,13 @@ Bun**. It provides, on top of `Bun.serve`:
   context typed from the schemas,
 - a uniform JSON error format (`LynError`),
 - typed environment-variable loading at startup,
+- Postgres through Drizzle, built in (`database: { schema }` → typed `ctx.db`),
 - pino logging.
 
-It targets POCs, solopreneurs and agencies. Auth (better-auth + Postgres) is
-planned but **not wired in yet**. The package is **not published** yet
+It targets POCs, solopreneurs and agencies: users should write as little
+configuration as possible, and every public API must be precisely typed.
+Auth (better-auth on top of the database) is planned but **not wired in
+yet**. The package is **not published** yet
 (`version 0.0.1`, `module: src/index.ts`, no build step).
 
 ## Commands
@@ -34,11 +46,20 @@ Always use Bun. Never use node, npm, npx, pnpm, yarn, vite, jest or ts-node.
 | Install deps               | `bun install`                            |
 | Run the sandbox app (hot)  | `bun run dev` → `testing/local.ts` on :3000 (needs `NODE_ENV` set) |
 | Run all tests              | `bun run test` (sets `NODE_ENV=lyn-test`) |
+| Run all tests + Postgres   | `bun run test:db` (starts the `postgres-test` container, sets `TEST_DATABASE_URL`) |
 | Run one test file          | `NODE_ENV=lyn-test bun test test/validation.test.ts` |
 | Coverage                   | `NODE_ENV=lyn-test bun test --coverage`  |
 | Dead-code check            | `bun run deadcode` (knip)                |
+| Docs site (hot)            | `bun run docs:dev`                       |
+| Docs build (dead links)    | `bun run docs:build`                     |
 | Type-check                 | `bunx tsc --noEmit`                      |
-| Postgres + pgAdmin (future auth) | `docker compose up -d`             |
+| Dev Postgres + pgAdmin     | `docker compose up -d postgres pgadmin`  |
+
+Tests that need Postgres are wrapped in `describe.skipIf(!TEST_DATABASE_URL)`:
+`bun run test` skips them, `bun run test:db` runs everything. The
+`postgres-test` service uses port 54329 and a tmpfs, so it never touches the
+dev database and starts empty. Run `bun run test:db` before committing any
+change under `src/features/database.ts` or the request lifecycle.
 
 Prefer `bun run test`: Lyn's internal logs are only silenced when
 `NODE_ENV=lyn-test`. Tests must still pass with any `NODE_ENV`, including
@@ -50,13 +71,17 @@ Requires Bun `>= 1.3.6` (`engines` in `package.json`).
 
 ```
 src/
-  index.ts     Lyn class (route builder, handle, listen/stop/url), public exports: Lyn, z, logger
+  index.ts     Lyn class (route builder, handle, listen/stop/url, db), public exports: Lyn, z, logger, LynEnvError, LynDatabaseError
+  db.ts        public `lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
+  features/
+    feature.ts   Feature: { context?, onStart?, onStop?, onResponse? } — internal, not a public plugin API
+    cors.ts      CorsConfig, createCorsFeature (onResponse: actual + preflight headers)
+    database.ts  DatabaseConfig, createDatabase (Bun SQL, snake_case), createDatabaseFeature (ping / close), DatabaseContext, DatabaseOf
   router.ts    Segment trie: path validation, matching, params extraction
   coerce.ts    coerceValue: string → number/boolean according to the zod field (unwraps .optional())
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
   params.ts    parseParams: coerceValue on router params, safeParse
   body.ts      readJsonBody: NO_BODY, JSON content type (415), JSON.parse (INVALID_JSON)
-  cors.ts      CorsConfig, assertValidCorsConfig, applyCors (actual + preflight headers)
   request-log.ts  resolveRequestId (safe incoming X-Request-Id or UUID), logRequest (level by status)
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
@@ -66,9 +91,10 @@ src/
                options from env: JSON in production, pino-pretty otherwise, LOG_LEVEL, silent in lyn-test
   utils.ts     getDefaultStatusFromMethod
   lib/auth.ts  better-auth stub, not imported anywhere yet
-test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG)
+test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG) + fixtures/ (Drizzle schema, SQL)
 testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built on app.handle)
-docs/          user documentation
+docs/          user documentation (VitePress site, one folder per sidebar category)
+CONTRIBUTING.md  maintainer workflow and doc-writing rules
 ```
 
 Imports inside `src/` use the `#/*` → `./src/*` alias from `tsconfig.json`.
@@ -81,18 +107,22 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 - `get/post/put/delete(path, handler, validation?)` add a `Route` to the
   router and return `this`. `get` has no body generic.
 - `handle(request)` is the single entry point: request id + child logger →
-  parse pathname → `router.match` → `handleRouteMatch(…, log)` → CORS →
-  `X-Request-Id` header → one `logRequest` line. Tests and `listen()` both
+  parse pathname → `router.match` → `handleRouteMatch({ …, log, appContext })`
+  → each feature's `onResponse` → `X-Request-Id` header → one `logRequest`
+  line. Tests and `listen()` both
   use it. Only unexpected errors are logged inside the lifecycle (with the
   same child logger); LynErrors are covered by the request line.
-- `listen(port = 0)` calls `Bun.serve({ fetch: req => this.handle(req), idleTimeout: 30 })`
+- `listen(port = 0)` is async: status `stopped → starting`, runs every
+  feature's `onStart` (database ping), then calls `Bun.serve({ fetch: req => this.handle(req), idleTimeout: 30 })`
   (Bun's native `routes` option is deliberately **not** used, so that
   `handle()` and the server cannot diverge), prints the ASCII logo unless
   `config.start.hideLynLogo`, sets `baseUrl = http://127.0.0.1:<port>`.
   Port `0` = random free port.
 - `url` getter throws if `listen()` has not been called.
-- `listen()` throws while a server is running; `stop()` detaches the
-  `beforeExit` listener (`stopOnExit`) so restarts don't accumulate listeners.
+- `listen()` rejects while `starting` or `running`; a failed `onStart` resets
+  the status to `stopped`. `stop()` stops the server, runs `onStop` in reverse
+  feature order (closes the pool) and detaches the `beforeExit` listener
+  (`stopOnExit`) so restarts don't accumulate listeners.
 - Any number of `Lyn` instances may coexist (no singleton).
 
 ### Router (`src/router.ts`)
@@ -133,10 +163,38 @@ Default statuses: GET 200, POST 201, PUT 200, DELETE 204. Handlers override
 via `set.status`; `set.headers` is kept. `Content-Type` is only defaulted
 when the handler did not set it.
 
-### CORS (`src/cors.ts`)
+### Features (`src/features/`)
+
+Built-in features are internal modules created from the config in the
+constructor (`createXFeature(config) → Feature | undefined`). `Lyn` merges
+their `context` into every handler context, runs `onStart` in order on
+`listen()`, `onStop` in reverse order on `stop()`, and pipes every response
+through `onResponse`. Adding a feature = a new file + one line in the
+constructor; never add `if (this.config.x)` branches to `Lyn` methods.
+Users only see `new Lyn({ … })` options.
+
+### Database (`src/features/database.ts`)
+
+- `new Lyn({ database: { schema, url? } })`. Without `url`, `DATABASE_URL` is
+  parsed by `parseEnvs` in the same pass as the user env (one `LynEnvError`
+  for all problems) but kept off `app.env`. `url` may be a function of the
+  typed `app.env`; a blank result throws `LynDatabaseError`.
+- `createDatabase` = `drizzle({ client: new SQL(url), schema, casing: "snake_case" })`.
+  Bun SQL connects lazily, so creation is sync and `app.db` exists right
+  after the constructor; `handle()` works without `listen()`.
+- Feature: `context: { db }`, `onStart` = `select 1` →
+  `LynDatabaseError("Cannot connect to the database: <cause>")` (cause from
+  `DrizzleQueryError.cause`, never the URL or the query); `onStop` closes the
+  pool and marks it closed, so a later `listen()` explains it can't reconnect.
+- `db` is the raw `drizzle()` return type (`BunSQLDatabase<TSchema> & { $client: SQL }`).
+  Never wrap it. Drizzle errors' `message` contains the SQL and parameters:
+  never forward it to clients.
+- Drizzle is imported statically (~10 ms, measured): no lazy loading.
+
+### CORS (`src/features/cors.ts`)
 
 Disabled unless `config.cors` is set (checked by `assertValidCorsConfig` in
-the constructor: `"*"` + `credentials` throws). `Lyn.handle` passes every
+`createCorsFeature`: `"*"` + `credentials` throws). `Lyn.handle` passes every
 response, errors and 404/405 included, through `applyCors`: `Vary: Origin`
 unless origin is `"*"`; if the request `Origin` is allowed, sets
 Allow-Origin (+ Allow-Credentials); on a preflight (OPTIONS + Request-Method
@@ -146,9 +204,16 @@ Refused origins get no CORS header but the request is still processed.
 
 ### Typing
 
-`Context<TBody, TParams, TQuery>` = `BodyContext & ParamsContext & QueryContext & { request, set }`.
+`Context<TBody, TParams, TQuery, TAppContext>` = `BodyContext & ParamsContext & QueryContext & TAppContext & { request, set }`.
 Generics default to `undefined`, so `ctx.body` only exists when a body schema
-is passed. Allowed schema shapes:
+is passed. `Lyn<TEnvConfig, TSchema>`: `TSchema` is inferred from
+`database.schema` (default `undefined`); route methods pass
+`DatabaseContext<TSchema>` as `TAppContext`, so `ctx.db` exists only with a
+database, and `app.db` is `DatabaseOf<TSchema>` — a branded type whose only
+key is the "No database configured…" message otherwise. Conditionals use
+`[TSchema] extends [DatabaseSchema]` to avoid distribution. Every typing
+change ships with `@ts-expect-error` / `satisfies` cases in
+`test/types.test.ts`. Allowed schema shapes:
 
 - body: any `ZodType`
 - params: `z.object` of `ZodString | ZodNumber`
@@ -175,6 +240,9 @@ Treat these as current behaviour. Fix them only when asked, and update
 - `ValidationError` does `JSON.parse(zodError.message)`; relies on Zod 4's
   message format.
 - `DELETE` defaults to 204, so a returned body is dropped by the runtime.
+- An app with a database can't `listen()` again after `stop()` (the pool is
+  closed); tests and scripts create a new app instead.
+- Postgres errors raised in handlers become a generic 500 (mapping planned).
 
 ## Conventions
 
@@ -322,6 +390,7 @@ the bad ones, and check that the good ones are still true.
 
 ## Roadmap (from README)
 
-Done: routes, lifecycle, body/params/query validation, logger, env vars.
-Todo: example project, auth (better-auth + `pg`, see `src/lib/auth.ts` and
-`docker-compose.yml`), documentation, publish, security checklist.
+Done: routes, lifecycle, body/params/query validation, logger, env vars,
+CORS, Postgres with Drizzle, documentation.
+Todo: CLI and migrations, auth (better-auth, see `src/lib/auth.ts`), example
+project, security checklist, publish.

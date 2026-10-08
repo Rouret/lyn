@@ -1,136 +1,76 @@
-<h1 align='center'>
- Lyn
-</h1>
+<h1 align="center">Lyn</h1>
 
-<h3 align='center'>
-  <b>Lyn is a lightweight Backend TypeScript framework with Bun.</b>
-</h3>
+<p align="center">
+  <b>Type-safe APIs on Bun, without the setup.</b>
+</p>
 
-### What and Why Lyn?
+<p align="center">
+  <a href="https://rouret.github.io/lyn/">Documentation</a> ·
+  <a href="https://rouret.github.io/lyn/guide/getting-started">Getting started</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
 
-Lyn is:
+Lyn is a small backend framework for [Bun](https://bun.sh). Chain your
+routes, describe their inputs with [Zod](https://zod.dev), and get typed
+handlers, request validation, consistent JSON errors and Postgres out of
+the box.
 
-- Fast
-- Type-safe
-- Secure with built-in authentication
-- Runs everywhere
-
-Lyn isn't here to replace existing frameworks. It was born from the need for a
-simple way to build things faster, with the best quality and developer experience.
-
-Most frameworks serve as a foundation for your products. However, I often need
-something simpler with authentication and security built-in by default.
-
-That's why Lyn focuses on being the easiest tool for POCs, solopreneurs, and agencies.
-
-Lyn leverages Bun and the best JavaScript libraries for the job.
-
-### Code example
-
-<img src="terminal.png" alt="Lyn terminal example" />
-
-Code:
+It is made for proofs of concept, solo developers and agencies: a working,
+safe API quickly, without assembling a stack first.
 
 ```ts
-new Lyn()
-  .get("/text", () => {
-    return "Hello World";
-  })
-  .get("/json", () => {
-    return {
-      message: "Hello World",
-    };
-  })
-  .get(
-    "/:name",
-    ({ params }) => {
-      return {
-        message: "Hello " + params.name,
-      };
-    },
-    {
-      params: z.object({
-        name: z.string(),
-      }),
-    }
-  )
-  .get(
-    "/test",
-    ({ query }) => {
-      return {
-        message: `Hello ${query.name} ${
-          query.isAdmin ? "is admin" : "is not admin"
-        } and you are ${query.age} years old`,
-      };
-    },
-    {
-      query: z.object({
-        name: z.string(),
-        isAdmin: z.boolean(),
-        age: z.number(),
-      }),
-    }
-  )
-  .post("/", ({ set }) => {
-    set.status = 201;
-    return {
-      message: "Hello World",
-    };
-  })
+import { Lyn, z } from "lyn";
+
+await new Lyn()
+  .get("/", () => "Hello World")
   .post(
     "/users",
-    ({ body, set }) => {
-      set.status = 201;
-      return {
-        message: "Hello " + body.name,
-      };
-    },
-    {
-      body: z.object({
-        name: z.string(),
-      }),
-    }
+    ({ body }) => ({ message: `Hello ${body.name}` }),
+    { body: z.object({ name: z.string() }) }
   )
   .listen(3000);
 ```
 
-Run it (Bun >= 1.3.6, `NODE_ENV` is required):
+<img src="terminal.png" alt="Lyn running in a terminal" />
 
-```bash
-bun install
-NODE_ENV=development bun run dev
-```
+## Features
 
-### Documentation
+- **Typed handlers**: `body`, `params` and `query` are typed from your Zod schemas.
+- **Validation**: invalid requests get a `400` before your handler runs.
+- **One error format**: every error has the same JSON shape, and internal details never leak.
+- **Checked configuration**: environment variables are validated and typed at startup.
+- **Postgres built in**: pass a Drizzle schema, get a typed `db` in every handler.
+- **Logs**: one line per request with a request id, JSON in production.
+- **Tests without a server**: `app.handle(request)` runs a request in memory.
 
-- [Getting started](docs/getting-started.md)
-- [Routing](docs/routing.md)
-- [Validation](docs/validation.md)
-- [Responses & errors](docs/responses-and-errors.md)
-- [Configuration](docs/configuration.md) — env variables, logging
-- [Testing](docs/testing.md)
+## Status
 
-Contributing with an AI agent? See [CLAUDE.md](CLAUDE.md) (also available as `AGENTS.md`).
+Lyn is at `0.0.1` and **not on npm yet**. It runs on Bun only, and its API
+may still change. See [Getting started](https://rouret.github.io/lyn/guide/getting-started)
+to use it from a clone.
 
-### Roadmap:
+## Roadmap
 
-- [x] Register Routes
-- [x] Request lifecycle
-- [x] Body validation
-- [x] Params validation
-- [x] Query validation
-- [x] Add a logger
+- [x] Routing, validation, errors
 - [x] Environment variables
-- [ ] Example Project
-- [ ] Auth
+- [x] Logging
+- [x] CORS
+- [x] Postgres with Drizzle
 - [x] Documentation
-- [ ] Publish
-- Do a Security Checklist
+- [ ] CLI and migrations
+- [ ] Authentication
+- [ ] Example project
+- [ ] Security checklist
+- [ ] Publish to npm
 
-### Contact
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Contact
 
 [X @RouretLucas](https://x.com/RouretLucas)
 
-### License
+## License
 
 MIT

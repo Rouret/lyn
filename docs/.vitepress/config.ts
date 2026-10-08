@@ -1,0 +1,70 @@
+import { defineConfig } from "vitepress";
+
+export default defineConfig({
+  title: "Lyn",
+  description: "A lightweight, type-safe backend framework for Bun",
+  base: "/lyn/",
+  cleanUrls: true,
+  lastUpdated: true,
+  themeConfig: {
+    nav: [
+      { text: "Guide", link: "/guide/introduction", activeMatch: "^/(guide|essentials|integrations|guides)/" },
+      { text: "Configuration", link: "/configuration/overview", activeMatch: "^/configuration/" },
+      { text: "Reference", link: "/reference/api", activeMatch: "^/reference/" },
+      {
+        text: "v0.0.1",
+        items: [
+          { text: "Roadmap", link: "https://github.com/Rouret/lyn#roadmap" },
+          { text: "Contributing", link: "https://github.com/Rouret/lyn/blob/main/CONTRIBUTING.md" },
+        ],
+      },
+    ],
+    sidebar: [
+      {
+        text: "Introduction",
+        items: [
+          { text: "What is Lyn?", link: "/guide/introduction" },
+          { text: "Getting started", link: "/guide/getting-started" },
+        ],
+      },
+      {
+        text: "Essentials",
+        items: [
+          { text: "Routing", link: "/essentials/routing" },
+          { text: "Handlers", link: "/essentials/handlers" },
+          { text: "Validation", link: "/essentials/validation" },
+          { text: "Errors", link: "/essentials/errors" },
+        ],
+      },
+      {
+        text: "Configuration",
+        items: [
+          { text: "Overview", link: "/configuration/overview" },
+          { text: "Environment variables", link: "/configuration/environment-variables" },
+          { text: "CORS", link: "/configuration/cors" },
+          { text: "Logging", link: "/configuration/logging" },
+        ],
+      },
+      {
+        text: "Integrations",
+        items: [{ text: "Database", link: "/integrations/database" }],
+      },
+      {
+        text: "Guides",
+        items: [{ text: "Testing", link: "/guides/testing" }],
+      },
+      {
+        text: "Reference",
+        items: [{ text: "API", link: "/reference/api" }],
+      },
+    ],
+    outline: { level: [2, 3], label: "On this page" },
+    socialLinks: [{ icon: "github", link: "https://github.com/Rouret/lyn" }],
+    editLink: {
+      pattern: "https://github.com/Rouret/lyn/edit/main/docs/:path",
+      text: "Edit this page on GitHub",
+    },
+    search: { provider: "local" },
+    footer: { message: "Released under the MIT License." },
+  },
+});
