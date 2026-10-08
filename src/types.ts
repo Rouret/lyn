@@ -101,7 +101,7 @@ export type Validation<
   params?: TParamsSchema;
   query?: TQuerySchema;
 };
-export type RouteHandlerBodyResponse = string | object | null;
+export type RouteHandlerBodyResponse = string | object | null | void;
 export type RouteHandler<
   TBodySchema extends PotentialAnySchema = undefined,
   TParamsSchema extends ParamsSchema = undefined,

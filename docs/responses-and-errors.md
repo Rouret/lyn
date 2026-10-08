@@ -8,11 +8,19 @@ Whatever the handler returns becomes the response body:
 | ----------------------- | -------------------- | -------------------- |
 | `string`                | the string           | `text/plain`         |
 | object, array or `null` | `JSON.stringify(...)`| `application/json`   |
+| nothing (`undefined`)   | empty                | none                 |
 
 ```ts
 .get("/text", () => "Hello")            // text/plain
 .get("/json", () => ({ hello: "world" })) // application/json
+.post("/jobs", ({ set }) => {           // empty body, 202
+  set.status = 202;
+})
 ```
+
+A handler that returns nothing keeps the status from `set.status` (the
+method default otherwise). Set `set.status = 204` explicitly if you want a
+No Content response.
 
 Every successful response also carries `Access-Control-Allow-Origin: *`.
 

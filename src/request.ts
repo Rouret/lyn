@@ -91,46 +91,25 @@ const handleRequestLifecycle = async (
   }
 };
 
-const handleFormattedBody = (
-  handlerResponse: RouteHandlerBodyResponse
-): string => {
-  if (typeof handlerResponse === "string") {
-    return handlerResponse;
-  }
-  return JSON.stringify(handlerResponse);
-};
-
-const getContentTypeFromBodyResponse = (
-  bodyResponse: RouteHandlerBodyResponse
-): string => {
-  if (typeof bodyResponse === "string") { 
-    return "text/plain";
-  }
-  return "application/json";
-};
-
 const handleResponse = (
   bodyResponse: RouteHandlerBodyResponse,
   headers: Headers,
   status: number
 ): Response => {
-  const contentType = getContentTypeFromBodyResponse(bodyResponse);
-
-  headers.set("Content-Type", contentType);
   //TODO: CORS headers
   headers.set("Access-Control-Allow-Origin", "*");
 
-  if (contentType === "application/json") {
-    return Response.json(bodyResponse, {
-      headers: headers,
-      status: status,
-    });
+  if (bodyResponse === undefined) {
+    return new Response(null, { headers, status });
   }
 
-  return new Response(handleFormattedBody(bodyResponse), {
-    headers: headers,
-    status: status,
-  });
+  if (typeof bodyResponse === "string") {
+    headers.set("Content-Type", "text/plain");
+    return new Response(bodyResponse, { headers, status });
+  }
+
+  headers.set("Content-Type", "application/json");
+  return Response.json(bodyResponse, { headers, status });
 };
 
 const handleRequest = async <

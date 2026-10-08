@@ -101,3 +101,38 @@ describe("Non-Error throws", () => {
     });
   });
 });
+
+describe("Handler without a return value", () => {
+  it("answers with an empty body and the default status", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => {});
+
+    const response = await createTestClient(app).get("/");
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBeNull();
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(await response.text()).toBe("");
+  });
+
+  it("keeps the status set by the handler", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).post("/jobs", async ({ set }) => {
+      set.status = 202;
+      set.headers.set("Location", "/jobs/1");
+    });
+
+    const response = await createTestClient(app).post("/jobs");
+
+    expect(response.status).toBe(202);
+    expect(response.headers.get("location")).toBe("/jobs/1");
+    expect(await response.text()).toBe("");
+  });
+
+  it("still serialises null as JSON", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => null);
+
+    const response = await createTestClient(app).get("/");
+
+    expect(response.headers.get("content-type")).toBe("application/json");
+    expect(await response.text()).toBe("null");
+  });
+});
