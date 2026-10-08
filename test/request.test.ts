@@ -56,3 +56,48 @@ describe("Handle Error", () => {
     );
   });
 });
+
+describe("Non-Error throws", () => {
+  const thrownValues: [string, unknown][] = [
+    ["undefined", undefined],
+    ["null", null],
+    ["a string", "secret detail"],
+    ["a number", 42],
+    ["an object with a truthy non-boolean isLynError", { isLynError: "yes" }],
+  ];
+
+  it.each(thrownValues)(
+    "returns a generic 500 when the handler throws %s",
+    async (_, thrownValue) => {
+      const app = new Lyn(TEST_LYN_CONFIG).get("/", () => {
+        throw thrownValue;
+      });
+
+      const response = await createTestClient(app).get("/");
+
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Internal Server Error",
+      });
+    }
+  );
+
+  it("still honours a duck-typed Lyn error", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => {
+      throw Object.assign(new Error("User not found"), {
+        isLynError: true,
+        code: "NOT_FOUND",
+        status: 404,
+      });
+    });
+
+    const response = await createTestClient(app).get("/");
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      code: "NOT_FOUND",
+      message: "User not found",
+    });
+  });
+});

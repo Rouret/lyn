@@ -1,5 +1,6 @@
 import {
   InternalServerError,
+  isLynError,
   LynError,
   MethodNotAllowedError,
   NoBodyError,
@@ -83,12 +84,10 @@ const handleRequestLifecycle = async (
       }`
     );
     return response;
-  } catch (error: any) {
-    // If the error is a LynError, throw it
-    if (error["isLynError"]) {
-      return handleError(error as LynError);
+  } catch (error: unknown) {
+    if (isLynError(error)) {
+      return handleError(error);
     }
-    // Else, send Internal Server Error and log the error
     internalLogger.error(error);
     return handleError(new InternalServerError());
   }

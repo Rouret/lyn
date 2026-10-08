@@ -16,6 +16,12 @@ export class LynError extends Error {
   }
 }
 
+export const isLynError = (error: unknown): error is LynError =>
+  typeof error === "object" &&
+  error !== null &&
+  "isLynError" in error &&
+  error.isLynError === true;
+
 export class ValidationError extends LynError {
   constructor(cause?: ZodError<any> | undefined) {
     super("VALIDATION", 400, "Bad Request", JSON.parse(cause?.message || "{}"));
