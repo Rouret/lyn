@@ -87,6 +87,8 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   `config.start.hideLynLogo`, sets `baseUrl = http://127.0.0.1:<port>`.
   Port `0` = random free port.
 - `url` getter throws if `listen()` has not been called.
+- `listen()` throws while a server is running; `stop()` detaches the
+  `beforeExit` listener (`stopOnExit`) so restarts don't accumulate listeners.
 - Any number of `Lyn` instances may coexist (no singleton).
 
 ### Router (`src/router.ts`)
@@ -168,8 +170,6 @@ Treat these as current behaviour. Fix them only when asked, and update
 - `DELETE` defaults to 204, so a returned body is dropped by the runtime.
 - `pino` / `pino-pretty` are `devDependencies` but imported at runtime by
   `src/logger.ts` — must move to `dependencies` before publishing.
-- `process.on("beforeExit")` is registered on every `listen()` call.
-- Calling `listen()` twice silently starts a second server.
 
 ## Conventions
 

@@ -120,6 +120,10 @@ class Lyn {
   listen(port: number = 0) {
     if (typeof Bun === "undefined")
       throw new Error("Lyn can only be used on Bun");
+    if (this.server)
+      throw new Error(
+        `Server is already running on ${this.url}. Call stop() before listening again.`
+      );
 
     this.server = Bun.serve({
       port,
@@ -147,10 +151,7 @@ class Lyn {
 
     this.baseUrl = `http://127.0.0.1:${this.server.port}`;
 
-    process.on("beforeExit", async () => {
-      internalLogger.warn("Server is shutting down");
-      this.stop();
-    });
+    process.on("beforeExit", this.stopOnExit);
 
     return this;
   }
@@ -162,10 +163,17 @@ class Lyn {
     return this.baseUrl;
   }
 
+  private stopOnExit = () => {
+    internalLogger.warn("Server is shutting down");
+    this.stop();
+  };
+
   async stop() {
+    process.off("beforeExit", this.stopOnExit);
     if (this.server) {
       await this.server.stop();
       this.server = null;
+      this.baseUrl = null;
     }
   }
 }

@@ -119,4 +119,44 @@ describe("listen", () => {
       await app.stop();
     }
   });
+
+  it("refuses to listen while already running", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok").listen();
+
+    try {
+      expect(() => app.listen()).toThrow(
+        `Server is already running on ${app.url}. Call stop() before listening again.`
+      );
+    } finally {
+      await app.stop();
+    }
+  });
+
+  it("can listen again after stop", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok");
+
+    app.listen();
+    await app.stop();
+    app.listen();
+
+    try {
+      expect(await (await fetch(app.url)).text()).toBe("ok");
+    } finally {
+      await app.stop();
+    }
+  });
+
+  it("does not accumulate exit listeners across restarts", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", () => "ok");
+    const listenersBefore = process.listenerCount("beforeExit");
+
+    for (let restart = 0; restart < 3; restart++) {
+      app.listen();
+      expect(process.listenerCount("beforeExit")).toBe(listenersBefore + 1);
+      await app.stop();
+    }
+
+    expect(process.listenerCount("beforeExit")).toBe(listenersBefore);
+  });
 });
+

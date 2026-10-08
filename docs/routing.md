@@ -108,6 +108,10 @@ await app.stop();
   closed.
 - `url` — base URL of the running server; throws if `listen()` was not called.
 - `stop()` — stops the server. Lyn also stops it on process `beforeExit`.
+  After `stop()`, `listen()` can be called again.
+
+Calling `listen()` while the server is already running throws
+`Server is already running on http://127.0.0.1:3000. Call stop() before listening again.`
 - `handle(request)` — runs a standard `Request` through the app and returns
   its `Response`, without any server. `listen()` uses it for every request,
   so behaviour is identical. Useful for [tests](testing.md) and for mounting
