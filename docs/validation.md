@@ -86,29 +86,31 @@ curl "localhost:3000/search?q=bun&page=2"
 # query = { q: "bun", page: 2 }
 ```
 
-Each declared key is read from the query string and converted:
+Each key declared in the schema is read from the query string and converted
+to the field's type, then the whole object is validated with
+`schema.safeParse` — refinements such as `.min()`, `.int()` or `.email()`
+apply.
 
-| Schema field  | Conversion                                  |
-| ------------- | ------------------------------------------- |
-| `z.string()`  | raw value                                   |
-| `z.number()`  | `Number(value)`                             |
-| `z.boolean()` | `true` if `"true"` or `"1"`, otherwise `false` |
+| Schema field  | Conversion before validation                          |
+| ------------- | ----------------------------------------------------- |
+| `z.string()`  | raw value                                             |
+| `z.number()`  | `Number(value)`; an empty value stays `""` and fails  |
+| `z.boolean()` | `"true"`/`"1"` → `true`, `"false"`/`"0"` → `false`, anything else fails |
 
-If the request has no query string at all, Lyn returns `400` `NO_QUERY`.
+| Situation                                         | Response            |
+| ------------------------------------------------- | ------------------- |
+| No query string at all                            | `400` `NO_QUERY`    |
+| Required key missing                              | `400` `VALIDATION`  |
+| Value of the wrong type (`?age=abc`, `?isAdmin=yes`) | `400` `VALIDATION` |
+| Key sent several times (`?tag=a&tag=b`)           | `400` `VALIDATION`  |
+| Refinement fails (`.min(2)`, `.int()`…)           | `400` `VALIDATION`  |
 
-> **Important — query values are converted, not validated.** The Zod schema
-> is not executed on the query today. Concretely:
->
-> - a missing key is simply absent from `query` (no 400),
-> - a non-numeric value for a `z.number()` field becomes `NaN`,
-> - a key sent several times (`?tag=a&tag=b`) is dropped,
-> - `.optional()` fields are always dropped,
-> - refinements such as `.min()` or `.email()` are ignored.
->
-> Re-check critical query values in your handler until this is fixed.
+`.optional()` fields are present in `query` when sent and absent otherwise.
+Keys that are not in the schema are ignored.
 
 ## Limitations
 
 - No validation for headers or cookies yet.
 - No validation of the response body.
-- See the notes above for params coercion and query validation.
+- Query fields cannot be arrays yet; a repeated key is rejected.
+- See the note above about params coercion.

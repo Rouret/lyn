@@ -14,7 +14,6 @@ import type {
   Context,
   ParamsSchema,
   PotentialAnySchema,
-  QueryInfer,
   QuerySchema,
   Route,
   RouteHandler,
@@ -22,9 +21,9 @@ import type {
   SetDefinition,
   Validation,
 } from "#/types";
+import { parseQuery } from "#/query";
 import type { RouteMatch } from "#/router";
 import { getDefaultStatusFromMethod } from "#/utils";
-import { ZodBoolean, ZodNumber, ZodString } from "zod";
 
 /*        | ---------handleRequestLifecycle----------|
  Request -> handleRequest -> handler -> handleResponse -> Response
@@ -191,26 +190,11 @@ const handleRequest = async <
       throw new NoQueryError();
     }
 
-    const out: Record<string, QueryInfer> = {};
-
-    for (const key in validation.query.shape) {
-      const field = validation.query.shape[key];
-      if (!field) continue;
-
-      const values = searchParams.getAll(key);
-      if (values.length !== 1) continue;
-
-      const value = values[0] as string;
-
-      if (field instanceof ZodString) {
-        out[key] = value;
-      } else if (field instanceof ZodNumber) {
-        out[key] = Number(value);
-      } else if (field instanceof ZodBoolean) {
-        out[key] = value === "true" || value === "1";
-      }
+    const { error, data } = parseQuery(searchParams, validation.query);
+    if (error) {
+      throw new ValidationError(error);
     }
-    context.query = out;
+    context.query = data;
   }
 
   return routeHandler(context);

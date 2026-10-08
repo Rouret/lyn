@@ -68,8 +68,6 @@ export type QuerySchema =
   | z.ZodObject<Record<string, QueryPrimitive>>
   | undefined;
 
-export type QueryInfer = z.infer<QueryPrimitive>;
-
 export type QueryContext<TSchema extends QuerySchema> =
   TSchema extends QuerySchema
     ? {

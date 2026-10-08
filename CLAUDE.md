@@ -52,6 +52,7 @@ Requires Bun `>= 1.3.6` (`engines` in `package.json`).
 src/
   index.ts     Lyn class (route builder, handle, listen/stop/url), public exports: Lyn, z, logger
   router.ts    Segment trie: path validation, matching, params extraction
+  query.ts     parseQuery: reads schema keys from URLSearchParams, coerces number/boolean, safeParse
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, exits(1) on invalid/missing
@@ -110,7 +111,7 @@ handleRequestLifecycle
   └─ handleRequest
        body   → requires request.body, request.body.json(), schema.safeParse  → NO_BODY / VALIDATION
        params → requires ≥1 param, schema.safeParse(router params)           → NO_PARAMS / VALIDATION
-       query  → requires ≥1 search param, manual coercion per shape key      → NO_QUERY
+       query  → requires ≥1 search param, parseQuery: coerce per field, safeParse → NO_QUERY / VALIDATION
        return handler(context)   (awaited, so async handlers work)
   └─ handleResponse: string → text/plain, anything else → Response.json
        always sets Content-Type and Access-Control-Allow-Origin: *
@@ -146,11 +147,6 @@ knows the `env` key — user keys are present at runtime but untyped).
 Treat these as current behaviour. Fix them only when asked, and update
 `docs/` and this file when you do.
 
-- **Query is coerced, not validated.** The Zod schema is never run on query
-  values: missing keys are dropped, repeated keys are dropped, `Number("x")`
-  becomes `NaN` (serialised as `null`), booleans are `"true"`/`"1"`. Nested
-  `ZodOptional` fields are not unwrapped, so optional query fields are always
-  dropped.
 - **Params are not coerced.** A `z.number()` param always fails with
   `VALIDATION` because Bun gives strings.
 - Error responses lack the CORS header. `OPTIONS` returns `Allow` only, no CORS preflight headers.
