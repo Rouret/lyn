@@ -35,6 +35,12 @@ Run all of them before proposing a change:
 | Types | `bunx tsc --noEmit` |
 | Dead code | `bun run deadcode` |
 | Docs build | `bun run docs:build` |
+| Packed package | `bun run check:package` |
+
+CI (`.github/workflows/ci.yml`) runs all of them except the docs build
+(`docs.yml` does it), with Postgres, on every push to `main` and pull
+request. `check:package` needs network access: it installs the packed
+tarball in a temporary project.
 
 `bun run test` sets `NODE_ENV=lyn-test`, which silences Lyn's internal
 logs. Tests must still pass with any `NODE_ENV`.

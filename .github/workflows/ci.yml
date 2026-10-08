@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: lyn
+          POSTGRES_PASSWORD: lyn
+          POSTGRES_DB: lyn_test
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd "pg_isready -U lyn -d lyn_test"
+          --health-interval 1s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit
+      - run: bun run deadcode
+      - run: bun run test
+        env:
+          TEST_DATABASE_URL: postgres://lyn:lyn@localhost:54329/lyn_test
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run check:package

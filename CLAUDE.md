@@ -51,6 +51,7 @@ Always use Bun. Never use node, npm, npx, pnpm, yarn, vite, jest or ts-node.
 | Coverage                   | `NODE_ENV=lyn-test bun test --coverage`  |
 | Dead-code check            | `bun run deadcode` (knip)                |
 | Build to `dist/`           | `bun run build`                          |
+| Check the packed package   | `bun run check:package` (pack → publint, attw, consumer project) |
 | Docs site (hot)            | `bun run docs:dev`                       |
 | Docs build (dead links)    | `bun run docs:build`                     |
 | Type-check                 | `bunx tsc --noEmit`                      |
@@ -105,6 +106,7 @@ src/
 test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG) + fixtures/ (Drizzle schema, SQL)
 testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built on app.handle)
 scripts/build.ts  `bun run build`: Bun.build + tsc (tsconfig.build.json) → dist/
+scripts/check-package.ts  `bun run check:package`: consumer smoke test of the packed tarball (CI job `package`)
 docs/          user documentation (VitePress site, one folder per sidebar category)
 CONTRIBUTING.md  maintainer workflow and doc-writing rules
 ```
@@ -278,6 +280,13 @@ change ships with `@ts-expect-error` / `satisfies` cases in
   `src/`, hence the explicit `entry` list in `knip.json`. Never add
   `sideEffects: false`: `src/logger.ts` and `src/features/database.ts` run
   code at import time.
+- `scripts/check-package.ts` packs the tarball, runs publint and attw
+  (`esm-only` profile) on it, installs it in a temp consumer project and
+  checks: consumer `tsc` (a `@ts-expect-error` fails if Lyn's types fall
+  back to `any`), one request through `app.handle()` with pretty logs, the
+  JSON patch on the consumer's drizzle-orm (one instance), `lyn --help`
+  and `lyn db generate` with a `lyn.config.ts`. Run it after any change to
+  the build, `package.json` or an entry point.
 
 ### CLI (`src/cli/`)
 
