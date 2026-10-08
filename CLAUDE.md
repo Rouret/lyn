@@ -299,9 +299,12 @@ change ships with `@ts-expect-error` / `satisfies` cases in
   `bun --bun`, from the project's `node_modules` (searched upwards, never
   auto-installed). drizzle-kit is an **optional peer dependency**: missing
   → error telling to `bun add -d drizzle-kit`. Lyn writes a temporary
-  `drizzle.config.ts` (dialect, absolute schema/out paths,
+  `drizzle.config.ts` (dialect, schema/out paths relative to the project,
   `casing: "snake_case"`, `process.env.DATABASE_URL`) and deletes it after;
   the URL is never written to disk. Extra args are passed through.
+  drizzle-kit runs in the project root and reads existing snapshots from
+  `./${out}/meta`, so an absolute `out` breaks every generate after the
+  first one. It also exits with 0 when it crashes.
 - `lyn db migrate` uses `drizzle-orm/bun-sql/migrator` directly, so
   production installs don't need drizzle-kit.
 - `DATABASE_URL` is read through `parseEnvs` (same `LynEnvError` format);

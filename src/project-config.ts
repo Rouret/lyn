@@ -34,5 +34,5 @@ export const loadDatabasePaths = async (
   };
 };
 
-export const displayPath = ({ projectRoot }: DatabasePaths, path: string) =>
+export const projectRelativePath = ({ projectRoot }: DatabasePaths, path: string) =>
   relative(projectRoot, path) || ".";

@@ -1,4 +1,4 @@
-import { displayPath, loadDatabasePaths, type DatabasePaths } from "#lyn/project-config";
+import { projectRelativePath, loadDatabasePaths, type DatabasePaths } from "#lyn/project-config";
 import { EXIT_CODE } from "#lyn/cli/exit-code";
 import { parseEnvs } from "#lyn/env";
 import { DATABASE_URL_ENV_CONFIG } from "#lyn/features/database";
@@ -29,15 +29,16 @@ const findDrizzleKitBin = (projectRoot: string): string => {
 const assertSchemaExists = (paths: DatabasePaths) => {
   if (!existsSync(paths.schema))
     throw new Error(
-      `No schema at ${displayPath(paths, paths.schema)}: create it, or set database.schema in lyn.config.ts`
+      `No schema at ${projectRelativePath(paths, paths.schema)}: create it, or set database.schema in lyn.config.ts`
     );
 };
 
 // The URL is read from the environment by drizzle-kit, so it is never written to disk.
-const drizzleKitConfig = ({ schema, migrations }: DatabasePaths) => `export default {
+// Paths are relative to the project: drizzle-kit reads existing snapshots from `./${out}/…`.
+const drizzleKitConfig = (paths: DatabasePaths) => `export default {
   dialect: "postgresql",
-  schema: ${JSON.stringify(schema)},
-  out: ${JSON.stringify(migrations)},
+  schema: ${JSON.stringify(projectRelativePath(paths, paths.schema))},
+  out: ${JSON.stringify(projectRelativePath(paths, paths.migrations))},
   casing: "snake_case",
   dbCredentials: { url: process.env.DATABASE_URL ?? "" },
 };
@@ -75,7 +76,7 @@ const migrateDatabase = async (paths: DatabasePaths): Promise<number> => {
   } finally {
     await client.close();
   }
-  console.log(`Migrations from ${displayPath(paths, paths.migrations)} applied`);
+  console.log(`Migrations from ${projectRelativePath(paths, paths.migrations)} applied`);
   return EXIT_CODE.SUCCESS;
 };
 

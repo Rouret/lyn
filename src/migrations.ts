@@ -1,4 +1,4 @@
-import { displayPath, type DatabasePaths } from "#lyn/project-config";
+import { projectRelativePath, type DatabasePaths } from "#lyn/project-config";
 import type { SQL } from "bun";
 import { drizzle } from "drizzle-orm/bun-sql";
 import { migrate } from "drizzle-orm/bun-sql/migrator";
@@ -10,7 +10,7 @@ export const assertMigrationsExist = (paths: DatabasePaths) => {
     readdirSync(paths.migrations).some((file) => file.endsWith(".sql"));
   if (!hasMigrations)
     throw new Error(
-      `No migrations in ${displayPath(paths, paths.migrations)}: run \`lyn db generate\` first`
+      `No migrations in ${projectRelativePath(paths, paths.migrations)}: run \`lyn db generate\` first`
     );
 };
 

@@ -111,6 +111,28 @@ describe("lyn db generate", () => {
     DRIZZLE_KIT_TIMEOUT_MS
   );
 
+  it(
+    "adds a migration on top of the existing ones",
+    async () => {
+      const project = await createProject({ "src/db/schema.ts": SCHEMA_SOURCE });
+      await runCli(project, ["db", "generate"]);
+      const schemaWithTitle = (await SCHEMA_SOURCE.text()).replace(
+        "body: text().notNull(),",
+        "body: text().notNull(),\n  title: text(),"
+      );
+      await Bun.write(join(project, "src/db/schema.ts"), schemaWithTitle);
+
+      const { exitCode } = await runCli(project, ["db", "generate"]);
+
+      expect(exitCode).toBe(0);
+      const migrations = (await sqlFilesIn(join(project, "drizzle"))).sort();
+      expect(migrations).toHaveLength(2);
+      const sql = await Bun.file(join(project, "drizzle", migrations[1]!)).text();
+      expect(sql).toContain('ADD COLUMN "title" text');
+    },
+    DRIZZLE_KIT_TIMEOUT_MS
+  );
+
   it("explains where the schema is expected", async () => {
     const project = await createProject({});
 
