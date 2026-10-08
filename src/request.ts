@@ -100,9 +100,6 @@ const handleResponse = (
   headers: Headers,
   status: number
 ): Response => {
-  //TODO: CORS headers
-  headers.set("Access-Control-Allow-Origin", "*");
-
   if (bodyResponse === undefined) {
     return new Response(null, { headers, status });
   }

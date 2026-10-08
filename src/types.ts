@@ -1,3 +1,4 @@
+import type { CorsConfig } from "#/cors";
 import type { EnvConfig } from "#/env";
 
 import z, { ZodType } from "zod";
@@ -29,6 +30,13 @@ export type LynConfig = {
    * })
    */
   env?: EnvConfig;
+  /**
+   * Cross-origin requests from browsers. Disabled when omitted: no CORS
+   * header is sent and only same-origin pages can call the API.
+   * @example
+   * new Lyn({ cors: { origin: ["https://app.example.com"], credentials: true } })
+   */
+  cors?: CorsConfig;
   start?: {
     /**
      * Remove the beautiful ascii art logo when the server starts

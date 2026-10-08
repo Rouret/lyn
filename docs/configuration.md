@@ -18,6 +18,7 @@ new Lyn({
 | Option              | Type        | Default | Description                                   |
 | ------------------- | ----------- | ------- | --------------------------------------------- |
 | `env`               | `EnvConfig` | `{}`    | Extra environment variables to load and check |
+| `cors`              | `CorsConfig`| none    | Allow browsers on other origins to call the API — see [CORS](#cors) |
 | `start.hideLynLogo` | `boolean`   | `false` | Hide the ASCII logo printed by `listen()`     |
 
 ## Environment variables
@@ -72,6 +73,47 @@ const { port, databaseUrl } = app.envConfig as unknown as {
 
 Your own keys are present at runtime, but `envConfig` is only typed with the
 built-in `env` key for now, hence the cast.
+
+## CORS
+
+CORS is **disabled by default**: Lyn sends no CORS header, so only pages
+served from the same origin as the API can call it from a browser. Enable
+it with the `cors` option:
+
+```ts
+new Lyn({
+  cors: {
+    origin: ["https://app.example.com"],
+    credentials: true,
+    exposedHeaders: ["X-Total-Count"],
+  },
+});
+```
+
+| Option           | Type                                       | Default                      |
+| ---------------- | ------------------------------------------ | ---------------------------- |
+| `origin`         | `"*"` \| `string[]` \| `(origin) => boolean` | required                     |
+| `credentials`    | `boolean`                                  | `false`                      |
+| `allowedHeaders` | `string[]`                                 | the headers the browser asks for |
+| `exposedHeaders` | `string[]`                                 | `[]`                         |
+| `maxAge`         | `number` (seconds)                         | `600`                        |
+
+- `origin` — `"*"` allows every origin. A list allows exact matches only
+  (`"https://app.example.com"`, scheme and port included). A function
+  decides per request, e.g. `(origin) => origin.endsWith(".example.com")`.
+- `credentials` — lets the browser send cookies and `Authorization`.
+  Combining it with `origin: "*"` is forbidden by the CORS spec, so Lyn
+  throws at startup.
+- Every response — successes and errors, including 404, 405 and 500 — gets
+  `Access-Control-Allow-Origin` when the request's `Origin` is allowed.
+- Preflight requests (`OPTIONS` with `Access-Control-Request-Method`) are
+  answered automatically with `204`, the methods registered for the path,
+  the allowed headers and `Access-Control-Max-Age`.
+- A request from a refused origin is still processed, but gets no CORS
+  header, so the browser hides the response from the page. CORS protects
+  users' browsers, not your server: keep real authorization in your handlers.
+- With a list or a function, responses carry `Vary: Origin` so caches don't
+  serve one origin's response to another.
 
 ## Logging
 

@@ -130,7 +130,6 @@ describe("Handler without a return value", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBeNull();
-    expect(response.headers.get("access-control-allow-origin")).toBe("*");
     expect(await response.text()).toBe("");
   });
 

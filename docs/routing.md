@@ -50,7 +50,7 @@ Requests that match nothing get a JSON error:
 | -------------------------------------- | --------------------------------------------- |
 | No route for this path                 | `404` `NOT_FOUND`                             |
 | Path exists, but not for this method   | `405` `METHOD_NOT_ALLOWED` + `Allow` header   |
-| `OPTIONS` on an existing path          | `204` + `Allow: GET, POST, OPTIONS`           |
+| `OPTIONS` on an existing path          | `204` + `Allow: GET, POST, OPTIONS` (+ CORS preflight headers when [CORS](configuration.md#cors) is enabled) |
 
 Registration errors are thrown immediately, before the server starts:
 
@@ -119,4 +119,3 @@ You can create as many `Lyn` instances as you want in one process.
 
 - Only GET, POST, PUT and DELETE.
 - No route groups, prefixes, middlewares or plugins yet.
-- `OPTIONS` answers with `Allow` only; CORS preflight headers are not sent yet.

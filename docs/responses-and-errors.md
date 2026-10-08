@@ -22,8 +22,6 @@ A handler that returns nothing keeps the status from `set.status` (the
 method default otherwise). Set `set.status = 204` explicitly if you want a
 No Content response.
 
-Every successful response also carries `Access-Control-Allow-Origin: *`.
-
 Returning a `Response` object yourself is not supported: it would be
 serialised as JSON.
 
@@ -43,8 +41,8 @@ Each request gets a mutable `set` object in its context:
 - `set.status` starts at the method's default: GET 200, POST 201, PUT 200,
   DELETE 204.
 - `set.headers` is a standard `Headers` instance. A `Content-Type` you set
-  is kept; Lyn only fills it in when you didn't. `Access-Control-Allow-Origin`
-  is always set to `*` after your handler runs.
+  is kept; Lyn only fills it in when you didn't. CORS headers are added
+  after your handler runs when [CORS](configuration.md#cors) is enabled.
 
 ```ts
 .get("/", ({ set }) => {
@@ -123,6 +121,4 @@ The `LynError` class that does this is not exported publicly yet.
 
 ## Limitations
 
-- Error responses do not carry the `Access-Control-Allow-Origin` header.
-- CORS is fixed to `Access-Control-Allow-Origin: *` and not configurable yet.
 - No streaming, file or custom `Response` return values.

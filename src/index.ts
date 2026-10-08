@@ -15,6 +15,7 @@ import type { Server } from "bun";
 import z from "zod";
 import packageJson from "../package.json";
 import { getEnvConfig, lynEnvConfig, type LynEnv } from "#/env";
+import { applyCors, assertValidCorsConfig } from "#/cors";
 
 const VERSION = packageJson.version as string;
 
@@ -45,6 +46,8 @@ class Lyn {
     };
 
     internalLogger.info("All environment variables are valid");
+
+    if (this.config.cors) assertValidCorsConfig(this.config.cors);
   }
 
   get<
@@ -102,13 +105,16 @@ class Lyn {
     this.router.add(route);
   }
 
-  handle(request: Request): Promise<Response> | Response {
+  async handle(request: Request): Promise<Response> {
     const { pathname } = new URL(request.url);
-    return handleRouteMatch(
+    const response = await handleRouteMatch(
       request,
       pathname,
       this.router.match(request.method, pathname)
     );
+    return this.config.cors
+      ? applyCors(request, response, this.config.cors)
+      : response;
   }
 
   listen(port: number = 0) {

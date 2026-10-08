@@ -56,6 +56,7 @@ src/
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
   params.ts    parseParams: coerceValue on router params, safeParse
   body.ts      readJsonBody: NO_BODY, JSON content type (415), JSON.parse (INVALID_JSON)
+  cors.ts      CorsConfig, assertValidCorsConfig, applyCors (actual + preflight headers)
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, exits(1) on invalid/missing
@@ -117,7 +118,6 @@ handleRequestLifecycle
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
        return handler(context)   (awaited, so async handlers work)
   └─ handleResponse: undefined → empty body, no Content-Type; string → text/plain; charset=utf-8; anything else → Response.json
-       always sets Content-Type and Access-Control-Allow-Origin: *
   └─ catch: isLynError → handleError(error) ; else log + InternalServerError (500, no details leaked)
 
 handleError → Response.json({ code, message, cause }, { status, headers: error.headers })
@@ -125,8 +125,18 @@ handleError → Response.json({ code, message, cause }, { status, headers: error
 
 Default statuses: GET 200, POST 201, PUT 200, DELETE 204. Handlers override
 via `set.status`; `set.headers` is kept. `Content-Type` is only defaulted
-when the handler did not set it; `Access-Control-Allow-Origin` is always
-overwritten after the handler.
+when the handler did not set it.
+
+### CORS (`src/cors.ts`)
+
+Disabled unless `config.cors` is set (checked by `assertValidCorsConfig` in
+the constructor: `"*"` + `credentials` throws). `Lyn.handle` passes every
+response, errors and 404/405 included, through `applyCors`: `Vary: Origin`
+unless origin is `"*"`; if the request `Origin` is allowed, sets
+Allow-Origin (+ Allow-Credentials); on a preflight (OPTIONS + Request-Method
++ 204) sets Allow-Methods from the `Allow` header, Allow-Headers (config or
+echo of Request-Headers) and Max-Age (default 600); otherwise Expose-Headers.
+Refused origins get no CORS header but the request is still processed.
 
 ### Typing
 
@@ -151,13 +161,11 @@ knows the `env` key — user keys are present at runtime but untyped).
 Treat these as current behaviour. Fix them only when asked, and update
 `docs/` and this file when you do.
 
-- Error responses lack the CORS header. `OPTIONS` returns `Allow` only, no CORS preflight headers.
 - `LynError` is not exported from `src/index.ts`; any thrown object with
   `isLynError: true` is treated as one (duck-typed).
 - `ValidationError` does `JSON.parse(zodError.message)`; relies on Zod 4's
   message format.
 - `DELETE` defaults to 204, so a returned body is dropped by the runtime.
-- CORS is hard-coded to `*` (TODO in code).
 - `pino` / `pino-pretty` are `devDependencies` but imported at runtime by
   `src/logger.ts` — must move to `dependencies` before publishing.
 - `process.on("beforeExit")` is registered on every `listen()` call.
