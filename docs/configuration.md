@@ -24,9 +24,29 @@ new Lyn({
 ## Environment variables
 
 Lyn reads and checks environment variables **once, when `new Lyn()` runs**.
-If any variable is missing or has the wrong type, Lyn logs
-`Missing environment variables: A, B` and exits the process with code 1.
-Your server never starts with a broken configuration.
+If any variable is missing or has the wrong type, the constructor throws a
+`LynEnvError` listing every problem at once:
+
+```
+LynEnvError: Invalid environment variables:
+  - DATABASE_URL: missing
+  - PORT: expected a number
+```
+
+Uncaught, it stops the process with a non-zero exit code, so your server
+never starts with a broken configuration. The rejected values are never
+printed, since they may be secrets. You can also catch it:
+
+```ts
+import { Lyn, LynEnvError } from "lyn";
+
+try {
+  new Lyn({ env: { port: { name: "PORT", type: "number" } } });
+} catch (error) {
+  if (error instanceof LynEnvError) reportToMonitoring(error.message);
+  throw error;
+}
+```
 
 ### Built-in
 

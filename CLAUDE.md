@@ -59,7 +59,7 @@ src/
   cors.ts      CorsConfig, assertValidCorsConfig, applyCors (actual + preflight headers)
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
-  env.ts       Env-var schema → parsed values, exits(1) on invalid/missing
+  env.ts       Env-var schema → parsed values, throws LynEnvError on invalid/missing
   error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, INTERNAL_SERVER_ERROR)
   logger.ts    `logger` (for users) and `internalLogger` (prefixed "[Lyn]")
   utils.ts     getDefaultStatusFromMethod
@@ -154,8 +154,9 @@ is passed. Allowed schema shapes:
 
 `new Lyn({ env: { key: { name: "ENV_NAME", type: "string" | "number" | "boolean" } } })`
 is merged with the built-in `{ env: { name: "NODE_ENV", type: "string" } }`.
-All variables are parsed from `Bun.env`; any failure logs the list and calls
-`process.exit(1)`. Result is on `app.envConfig` (typed as `LynEnv`, which only
+All variables are parsed from `Bun.env`; blank values count as missing; any
+failure throws one `LynEnvError` listing `NAME: missing` / `NAME: expected …`
+(never the value — it may be a secret). The library never calls `process.exit`. Result is on `app.envConfig` (typed as `LynEnv`, which only
 knows the `env` key — user keys are present at runtime but untyped).
 
 ## Known gaps and pitfalls

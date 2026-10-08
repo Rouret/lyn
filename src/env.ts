@@ -1,4 +1,3 @@
-import { internalLogger } from "#/logger";
 import z from "zod";
 
 type EnvConfigItem = {
@@ -14,26 +13,31 @@ type EnvNames = "env";
 export type EnvConfig = Record<string, EnvConfigItem>;
 type InternalEnvConfig = Record<EnvNames, EnvConfigItem>;
 
-const zNonBlankString = z.string().refine((value) => value.trim() !== "");
+const isBlank = (value: string | undefined) =>
+  value === undefined || value.trim() === "";
 
-const zNumberFromEnv = z.string().trim().min(1).pipe(z.coerce.number());
+const zNumberFromEnv = z.string().pipe(z.coerce.number());
 
 const zBooleanFromEnv = z
   .enum(["true", "1", "false", "0"])
   .transform((value) => value === "true" || value === "1");
 
-const getZodTypeFromEnvType = (type: EnvType) => {
-  switch (type) {
-    case "string":
-      return zNonBlankString;
-    case "number":
-      return zNumberFromEnv;
-    case "boolean":
-      return zBooleanFromEnv;
-    default:
-      throw new Error(`Invalid environment type: ${type}`);
-  }
+const ENV_PARSERS: Record<EnvType, { schema: z.ZodType; expected: string }> = {
+  string: { schema: z.string(), expected: "a string" },
+  number: { schema: zNumberFromEnv, expected: "a number" },
+  boolean: { schema: zBooleanFromEnv, expected: "true, false, 1 or 0" },
 };
+
+export class LynEnvError extends Error {
+  constructor(problems: string[]) {
+    super(
+      ["Invalid environment variables:", ...problems.map((p) => `  - ${p}`)].join(
+        "\n"
+      )
+    );
+    this.name = "LynEnvError";
+  }
+}
 
 export const lynEnvConfig: InternalEnvConfig = {
   env: {
@@ -45,33 +49,26 @@ export const lynEnvConfig: InternalEnvConfig = {
 export type LynEnv = Record<EnvNames, string | number | boolean>;
 
 export const getEnvConfig = (config: InternalEnvConfig): LynEnv => {
-  //@ts-expect-error - This is a record of the environment variables
-  const env: LynEnv = {};
-  const missingEnv: string[] = [];
+  const env: Partial<LynEnv> = {};
+  const problems: string[] = [];
 
-  for (const [key, value] of Object.entries(config)) {
-    const envValue = Bun.env[value.name];
-    const zodType = getZodTypeFromEnvType(value.type);
-
-    //Type Check
-    const { success: isValueTypeValid, data: parsedValue } =
-      zodType.safeParse(envValue);
-
-    if (!isValueTypeValid) {
-      missingEnv.push(value.name);
+  for (const [key, { name, type }] of Object.entries(config)) {
+    const rawValue = Bun.env[name];
+    if (isBlank(rawValue)) {
+      problems.push(`${name}: missing`);
       continue;
     }
-    // To prevent defining environment variables when an error is going to be thrown
-    if (missingEnv.length === 0) {
-      env[key as EnvNames] = parsedValue;
+
+    const { schema, expected } = ENV_PARSERS[type];
+    const { success, data } = schema.safeParse(rawValue);
+    if (!success) {
+      problems.push(`${name}: expected ${expected}`);
+      continue;
     }
+
+    env[key as EnvNames] = data as LynEnv[EnvNames];
   }
 
-  if (missingEnv.length > 0) {
-    internalLogger.error(
-      `Missing environment variables: ${missingEnv.join(", ")}`
-    );
-    process.exit(1);
-  }
-  return env;
+  if (problems.length > 0) throw new LynEnvError(problems);
+  return env as LynEnv;
 };

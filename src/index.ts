@@ -14,7 +14,7 @@ import type {
 import type { Server } from "bun";
 import z from "zod";
 import packageJson from "../package.json";
-import { getEnvConfig, lynEnvConfig, type LynEnv } from "#/env";
+import { getEnvConfig, LynEnvError, lynEnvConfig, type LynEnv } from "#/env";
 import { applyCors, assertValidCorsConfig } from "#/cors";
 
 const VERSION = packageJson.version as string;
@@ -33,7 +33,6 @@ class Lyn {
   public envConfig: LynEnv;
 
   constructor(config: LynConfig = DEFAULT_LYN_CONFIG) {
-    // getEnvConfig exits if env is missing
     // TODO: create a lyn.config.ts file to store the config
     this.envConfig = getEnvConfig({
       ...lynEnvConfig,
@@ -178,4 +177,4 @@ class Lyn {
   }
 }
 
-export { logger, Lyn, z };
+export { logger, Lyn, LynEnvError, z };

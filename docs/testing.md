@@ -92,19 +92,13 @@ before calling `new Lyn()`, and remove them with `delete Bun.env.NAME`
 (assigning `undefined` stores the string `"undefined"`). Restore them after
 the test: all test files share the same process.
 
-Because a missing variable calls `process.exit(1)`, mock it when testing that
-path:
+Invalid variables make the constructor throw a `LynEnvError`, so testing
+that path needs no mock:
 
 ```ts
-import { spyOn } from "bun:test";
-
-const exit = spyOn(process, "exit").mockImplementation(((code?: number) => {
-  throw new Error(`process.exit(${code})`);
-}) as never);
+import { Lyn, LynEnvError } from "lyn";
 
 delete Bun.env.DATABASE_URL;
 expect(() => new Lyn({ env: { db: { name: "DATABASE_URL", type: "string" } } }))
-  .toThrow("process.exit(1)");
-
-exit.mockRestore();
+  .toThrow(LynEnvError);
 ```

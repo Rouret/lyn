@@ -1,37 +1,70 @@
-import { getEnvConfig, lynEnvConfig } from "#/env";
+import { getEnvConfig, LynEnvError, lynEnvConfig } from "#/env";
+import { Lyn } from "#/index";
 import { describe, it, expect, spyOn } from "bun:test";
 
-const withNodeEnv = (value: string | undefined, run: () => void) => {
-  const previousNodeEnv = Bun.env.NODE_ENV;
-  if (value === undefined) delete Bun.env.NODE_ENV;
-  else Bun.env.NODE_ENV = value;
+const withEnv = (values: Record<string, string | undefined>, run: () => void) => {
+  const previousValues = Object.fromEntries(
+    Object.keys(values).map((name) => [name, Bun.env[name]])
+  );
+  const assign = (entries: Record<string, string | undefined>) => {
+    for (const [name, value] of Object.entries(entries)) {
+      if (value === undefined) delete Bun.env[name];
+      else Bun.env[name] = value;
+    }
+  };
 
+  assign(values);
   try {
     run();
   } finally {
-    Bun.env.NODE_ENV = previousNodeEnv;
+    assign(previousValues);
   }
 };
 
+const configWith = (type: "string" | "number" | "boolean") =>
+  ({
+    ...lynEnvConfig,
+    value: { name: "LYN_TEST_VALUE", type },
+  }) as typeof lynEnvConfig;
+
 describe("getEnvConfig", () => {
   it("returns parsed env config when all variables are valid", () => {
-    withNodeEnv("staging", () => {
+    withEnv({ NODE_ENV: "staging" }, () => {
       expect(getEnvConfig(lynEnvConfig)).toEqual({ env: "staging" });
     });
   });
 
-  it("exits process when a variable is missing or invalid", () => {
-    const exitSpy = spyOn(process, "exit").mockImplementation(((
-      code?: number
-    ) => {
-      throw new Error(`process.exit(${code})`);
-    }) as never);
+  it("throws a LynEnvError listing missing and invalid variables", () => {
+    withEnv({ NODE_ENV: undefined, LYN_TEST_VALUE: "abc" }, () => {
+      const parse = () => getEnvConfig(configWith("number"));
+
+      expect(parse).toThrow(LynEnvError);
+      expect(parse).toThrow(
+        "Invalid environment variables:\n" +
+          "  - NODE_ENV: missing\n" +
+          "  - LYN_TEST_VALUE: expected a number"
+      );
+    });
+  });
+
+  it("never includes the rejected value in the error", () => {
+    withEnv({ LYN_TEST_VALUE: "s3cr3t-token" }, () => {
+      expect(() => getEnvConfig(configWith("boolean"))).toThrow(
+        expect.objectContaining({
+          message: expect.not.stringContaining("s3cr3t-token"),
+        })
+      );
+    });
+  });
+
+  it("does not exit the process", () => {
+    const exitSpy = spyOn(process, "exit");
 
     try {
-      withNodeEnv(undefined, () => {
-        expect(() => getEnvConfig(lynEnvConfig)).toThrow("process.exit(1)");
+      withEnv({ NODE_ENV: undefined }, () => {
+        expect(() => new Lyn()).toThrow(LynEnvError);
       });
-      expect(exitSpy).toHaveBeenCalledWith(1);
+      expect(exitSpy).not.toHaveBeenCalled();
     } finally {
       exitSpy.mockRestore();
     }
@@ -42,27 +75,24 @@ describe("getEnvConfig", () => {
     ["a blank string", "string", "   "],
     ["an empty number", "number", ""],
     ["a blank number", "number", "  "],
-    ["a non-numeric number", "number", "abc"],
     ["an empty boolean", "boolean", ""],
-  ] as const)("rejects %s", (_, type, rawValue) => {
-    Bun.env.LYN_TEST_VALUE = rawValue;
-    const exitSpy = spyOn(process, "exit").mockImplementation(((
-      code?: number
-    ) => {
-      throw new Error(`process.exit(${code})`);
-    }) as never);
+  ] as const)("reports %s as missing", (_, type, rawValue) => {
+    withEnv({ LYN_TEST_VALUE: rawValue }, () => {
+      expect(() => getEnvConfig(configWith(type))).toThrow(
+        "  - LYN_TEST_VALUE: missing"
+      );
+    });
+  });
 
-    try {
-      expect(() =>
-        getEnvConfig({
-          ...lynEnvConfig,
-          value: { name: "LYN_TEST_VALUE", type },
-        } as typeof lynEnvConfig)
-      ).toThrow("process.exit(1)");
-    } finally {
-      exitSpy.mockRestore();
-      delete Bun.env.LYN_TEST_VALUE;
-    }
+  it.each([
+    ["number", "abc", "expected a number"],
+    ["boolean", "yes", "expected true, false, 1 or 0"],
+  ] as const)("reports an invalid %s", (type, rawValue, reason) => {
+    withEnv({ LYN_TEST_VALUE: rawValue }, () => {
+      expect(() => getEnvConfig(configWith(type))).toThrow(
+        `  - LYN_TEST_VALUE: ${reason}`
+      );
+    });
   });
 
   it.each([
@@ -71,18 +101,10 @@ describe("getEnvConfig", () => {
     ["number", "-1.5", -1.5],
     ["boolean", "0", false],
   ] as const)("parses a valid %s (%p)", (type, rawValue, expected) => {
-    Bun.env.LYN_TEST_VALUE = rawValue;
-
-    try {
-      expect(
-        getEnvConfig({
-          ...lynEnvConfig,
-          value: { name: "LYN_TEST_VALUE", type },
-        } as typeof lynEnvConfig)
-      ).toMatchObject({ value: expected });
-    } finally {
-      delete Bun.env.LYN_TEST_VALUE;
-    }
+    withEnv({ LYN_TEST_VALUE: rawValue }, () => {
+      expect(getEnvConfig(configWith(type))).toMatchObject({
+        value: expected,
+      });
+    });
   });
 });
-

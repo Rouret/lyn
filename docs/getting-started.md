@@ -36,8 +36,8 @@ new Lyn()
   .listen(3000);
 ```
 
-Run it. `NODE_ENV` is **required** — Lyn exits with code 1 at startup if it is
-missing:
+Run it. `NODE_ENV` is **required** — Lyn throws a `LynEnvError` at startup if
+it is missing:
 
 ```bash
 NODE_ENV=development bun --hot run server.ts
@@ -62,12 +62,13 @@ NODE_ENV=development bun run dev
 ## Exports
 
 ```ts
-import { Lyn, z, logger } from "lyn";
+import { Lyn, LynEnvError, z, logger } from "lyn";
 ```
 
 | Export   | What it is                                                |
 | -------- | --------------------------------------------------------- |
 | `Lyn`    | The application class                                     |
+| `LynEnvError` | Thrown by `new Lyn()` when environment variables are invalid |
 | `z`      | Zod, re-exported so your schemas match Lyn's Zod version  |
 | `logger` | A [pino](https://getpino.io) logger with pretty output    |
 
