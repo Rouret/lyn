@@ -1,4 +1,5 @@
 import type { FeatureDefinition } from "#/features/feature";
+import { HTTP_STATUS } from "#/http-status";
 
 export type CorsConfig = {
   /**
@@ -34,7 +35,7 @@ const isOriginAllowed = (config: CorsConfig, origin: string): boolean => {
 const isPreflight = (request: Request, response: Response) =>
   request.method === "OPTIONS" &&
   request.headers.has("Access-Control-Request-Method") &&
-  response.status === 204;
+  response.status === HTTP_STATUS.NO_CONTENT;
 
 const setPreflightHeaders = (
   request: Request,

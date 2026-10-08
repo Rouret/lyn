@@ -6,6 +6,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "#/error";
+import { HTTP_STATUS } from "#/http-status";
 import type { RequestLogger } from "#/request-log";
 import type { Route, RouteHandlerBodyResponse, SetDefinition } from "#/types";
 import { readJsonBody } from "#/body";
@@ -52,7 +53,7 @@ export const handleRouteMatch = ({
     case "method_not_allowed":
       if (request.method === "OPTIONS") {
         return new Response(null, {
-          status: 204,
+          status: HTTP_STATUS.NO_CONTENT,
           headers: { Allow: [...match.allowedMethods, "OPTIONS"].join(", ") },
         });
       }

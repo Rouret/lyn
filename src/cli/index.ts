@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { DB_COMMANDS, runDbCommand, type DbCommand } from "#/cli/db";
+import { EXIT_CODE } from "#/cli/exit-code";
 
 const USAGE = `Usage: lyn db <command> [drizzle-kit flags]
 
@@ -14,11 +15,11 @@ const isDbCommand = (command: string | undefined): command is DbCommand =>
 const run = async ([group, command, ...args]: string[]): Promise<number> => {
   if (group === "--help" || group === "-h") {
     console.log(USAGE);
-    return 0;
+    return EXIT_CODE.SUCCESS;
   }
   if (group !== "db" || !isDbCommand(command)) {
     console.error(USAGE);
-    return 1;
+    return EXIT_CODE.FAILURE;
   }
   return runDbCommand(command, args, process.cwd());
 };
@@ -27,5 +28,5 @@ try {
   process.exitCode = await run(Bun.argv.slice(2));
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
+  process.exitCode = EXIT_CODE.FAILURE;
 }

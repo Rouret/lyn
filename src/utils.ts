@@ -1,3 +1,4 @@
+import { HTTP_STATUS } from "#/http-status";
 import type { LynSupportedMethods } from "#/types";
 
 export const getDefaultStatusFromMethod = (
@@ -5,12 +6,12 @@ export const getDefaultStatusFromMethod = (
 ): number => {
   switch (method) {
     case "GET":
-      return 200;
+      return HTTP_STATUS.OK;
     case "POST":
-      return 201;
+      return HTTP_STATUS.CREATED;
     case "PUT":
-      return 200;
+      return HTTP_STATUS.OK;
     case "DELETE":
-      return 204;
+      return HTTP_STATUS.NO_CONTENT;
   }
 };

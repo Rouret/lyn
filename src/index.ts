@@ -44,6 +44,10 @@ const DEFAULT_LYN_CONFIG: Pick<LynConfig, "start"> = {
 
 const BUILT_IN_FEATURES = [databaseFeature, corsFeature];
 
+const ANY_FREE_PORT = 0;
+const LOOPBACK_HOST = "127.0.0.1";
+const SERVER_IDLE_TIMEOUT_SECONDS = 30;
+
 type ServerStatus = "stopped" | "starting" | "running";
 
 const isDefined = <T>(value: T | undefined): value is T => value !== undefined;
@@ -211,7 +215,7 @@ class Lyn<
     return response;
   }
 
-  async listen(port: number = 0): Promise<this> {
+  async listen(port: number = ANY_FREE_PORT): Promise<this> {
     if (typeof Bun === "undefined")
       throw new Error("Lyn can only be used on Bun");
     if (this.status === "running")
@@ -232,7 +236,7 @@ class Lyn<
     this.server = Bun.serve({
       port,
       fetch: (request) => this.handle(request),
-      idleTimeout: 30,
+      idleTimeout: SERVER_IDLE_TIMEOUT_SECONDS,
     });
     this.status = "running";
 
@@ -254,7 +258,7 @@ class Lyn<
 
     internalLogger.info(`Server is running on port ${this.server.port}`);
 
-    this.baseUrl = `http://127.0.0.1:${this.server.port}`;
+    this.baseUrl = `http://${LOOPBACK_HOST}:${this.server.port}`;
 
     stopOnShutdownSignal(this);
 

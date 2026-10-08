@@ -75,6 +75,7 @@ src/
   config.ts    public `lyn/config` entry: defineConfig + LynCliConfig (lyn.config.ts for the CLI)
   cli/
     index.ts     `lyn` bin (package.json "bin"): parses `lyn db <generate|migrate|studio>`, sets process.exitCode
+    exit-code.ts EXIT_CODE (SUCCESS, FAILURE)
     db.ts        generate / studio → drizzle-kit (temp config, URL read from env), migrate → src/migrations.ts
   project-config.ts  loadDatabasePaths: optional lyn.config.ts (cwd), defaults src/db/schema.ts and drizzle/ (CLI + migrateOnStart)
   migrations.ts  assertMigrationsExist, applyMigrations (drizzle migrator on a reserved connection holding pg_advisory_lock)
@@ -97,6 +98,7 @@ src/
   error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, INTERNAL_SERVER_ERROR)
   logger.ts    one pino root `logger` (exported) + `internalLogger` child (msgPrefix "[Lyn] ");
                options from env: JSON in production, pino-pretty otherwise, LOG_LEVEL, silent in lyn-test
+  http-status.ts  HTTP_STATUS (named status codes), isClientError, isServerError
   utils.ts     getDefaultStatusFromMethod
   lib/auth.ts  better-auth stub, not imported anywhere yet
 test/          bun:test suites + constantsTest.ts (TEST_LYN_CONFIG) + fixtures/ (Drizzle schema, SQL)
@@ -308,6 +310,14 @@ Treat these as current behaviour. Fix them only when asked, and update
 - New HTTP method: add it to `LYN_SUPPORTED_METHODS` in `src/types.ts`, a
   default status in `src/utils.ts`, a builder method in `src/index.ts`, and
   extend `test/handle.test.ts` + `test/utils.test.ts`.
+- No magic numbers or codes in `src/`: name them. A constant shared by
+  several modules lives in a module named after its domain
+  (`src/http-status.ts` → `HTTP_STATUS`, `src/cli/exit-code.ts`), never a
+  catch-all `constants.ts`; a constant used by one module is an UPPER_SNAKE
+  `const` at the top of that module (`POSTGRES_ERROR_CODE`,
+  `SERVER_IDLE_TIMEOUT_SECONDS`). Group related values in an `as const`
+  object. Units go in the name (`_SECONDS`, `_MS`). Tests keep literal
+  values: there the number is the specification.
 - Use Bun APIs over Node equivalents (`Bun.env`, `Bun.serve`, `Bun.file`, `bun:test`).
 - `knip` must stay clean: no unused exports/files in `src/`.
 

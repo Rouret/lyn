@@ -138,11 +138,22 @@ const migrateOnStart = async (db: Database) => {
   internalLogger.info("Migrations applied");
 };
 
+const POSTGRES_ERROR_CODE = {
+  UNIQUE_VIOLATION: "23505",
+  FOREIGN_KEY_VIOLATION: "23503",
+  NOT_NULL_VIOLATION: "23502",
+  INVALID_TEXT_REPRESENTATION: "22P02",
+} as const;
+
 const POSTGRES_ERRORS: Record<string, () => LynError> = {
-  "23505": () => new ConflictError("A record with this value already exists"),
-  "23503": () => new ConflictError("This record conflicts with a related record"),
-  "23502": () => new InvalidValueError("A required value is missing"),
-  "22P02": () => new InvalidValueError("A value has an invalid format"),
+  [POSTGRES_ERROR_CODE.UNIQUE_VIOLATION]: () =>
+    new ConflictError("A record with this value already exists"),
+  [POSTGRES_ERROR_CODE.FOREIGN_KEY_VIOLATION]: () =>
+    new ConflictError("This record conflicts with a related record"),
+  [POSTGRES_ERROR_CODE.NOT_NULL_VIOLATION]: () =>
+    new InvalidValueError("A required value is missing"),
+  [POSTGRES_ERROR_CODE.INVALID_TEXT_REPRESENTATION]: () =>
+    new InvalidValueError("A value has an invalid format"),
 };
 
 const findPostgresError = (error: unknown) => {

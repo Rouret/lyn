@@ -1,3 +1,4 @@
+import { HTTP_STATUS } from "#/http-status";
 import type { LynSupportedMethods } from "#/types";
 import type { ZodError } from "zod";
 
@@ -24,32 +25,32 @@ export const isLynError = (error: unknown): error is LynError =>
 
 export class ValidationError extends LynError {
   constructor(cause?: ZodError<any> | undefined) {
-    super("VALIDATION", 400, "Bad Request", JSON.parse(cause?.message || "{}"));
+    super("VALIDATION", HTTP_STATUS.BAD_REQUEST, "Bad Request", JSON.parse(cause?.message || "{}"));
   }
 }
 
 export class InvalidValueError extends LynError {
   constructor(message: string) {
-    super("VALIDATION", 400, message);
+    super("VALIDATION", HTTP_STATUS.BAD_REQUEST, message);
   }
 }
 
 export class ConflictError extends LynError {
   constructor(message: string) {
-    super("CONFLICT", 409, message);
+    super("CONFLICT", HTTP_STATUS.CONFLICT, message);
   }
 }
 
 export class NoBodyError extends LynError {
   constructor() {
-    super("NO_BODY", 400, "No body provided");
+    super("NO_BODY", HTTP_STATUS.BAD_REQUEST, "No body provided");
   }
 }
 export class UnsupportedMediaTypeError extends LynError {
   constructor(contentType: string) {
     super(
       "UNSUPPORTED_MEDIA_TYPE",
-      415,
+      HTTP_STATUS.UNSUPPORTED_MEDIA_TYPE,
       `Unsupported content type: ${contentType || "none"}, expected application/json`
     );
   }
@@ -57,13 +58,13 @@ export class UnsupportedMediaTypeError extends LynError {
 
 export class InvalidJsonError extends LynError {
   constructor() {
-    super("INVALID_JSON", 400, "Request body is not valid JSON");
+    super("INVALID_JSON", HTTP_STATUS.BAD_REQUEST, "Request body is not valid JSON");
   }
 }
 
 export class NotFoundError extends LynError {
   constructor(method: string, pathname: string) {
-    super("NOT_FOUND", 404, `Route ${method} ${pathname} not found`);
+    super("NOT_FOUND", HTTP_STATUS.NOT_FOUND, `Route ${method} ${pathname} not found`);
   }
 }
 
@@ -75,7 +76,7 @@ export class MethodNotAllowedError extends LynError {
   ) {
     super(
       "METHOD_NOT_ALLOWED",
-      405,
+      HTTP_STATUS.METHOD_NOT_ALLOWED,
       `Method ${method} not allowed on ${pathname}`
     );
     this.headers.set("Allow", allowedMethods.join(", "));
@@ -85,6 +86,6 @@ export class MethodNotAllowedError extends LynError {
 export class InternalServerError extends LynError {
   constructor() {
     // Display no cause message for security reasons
-    super("INTERNAL_SERVER_ERROR", 500, "Internal Server Error");
+    super("INTERNAL_SERVER_ERROR", HTTP_STATUS.INTERNAL_SERVER_ERROR, "Internal Server Error");
   }
 }

@@ -1,4 +1,5 @@
 import { displayPath, loadDatabasePaths, type DatabasePaths } from "#/project-config";
+import { EXIT_CODE } from "#/cli/exit-code";
 import { parseEnvs } from "#/env";
 import { DATABASE_URL_ENV_CONFIG } from "#/features/database";
 import { applyMigrations, assertMigrationsExist } from "#/migrations";
@@ -75,7 +76,7 @@ const migrateDatabase = async (paths: DatabasePaths): Promise<number> => {
     await client.close();
   }
   console.log(`Migrations from ${displayPath(paths, paths.migrations)} applied`);
-  return 0;
+  return EXIT_CODE.SUCCESS;
 };
 
 export const runDbCommand = async (
