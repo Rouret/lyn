@@ -95,8 +95,10 @@ bun run docs:dev
 
 `examples/feedback-board` installs Lyn the way a user would: from the
 packed tarball, not from `src/`. After a change to Lyn, run
-`bun run pack:example` from the root, then `bun run test` (its own
-Postgres on port 5434) and `bun run typecheck` in the example. Bun keeps
+`bun run check:example` from the root: it packs Lyn, installs it in the
+example, then runs the example's `typecheck` and `test` (its own Postgres
+on port 5434, migrated with `lyn db migrate`). `bun run pack:example`
+only does the install, to use the build by hand. Bun keeps
 the copy it already installed from the same tarball path, so the script
 removes and re-adds the package; the example's `bun.lock` changes with
 every new tarball.
@@ -104,7 +106,7 @@ every new tarball.
 ## Releases
 
 There is no release automation. Only the maintainer publishes, by hand,
-once `bun run check:package` passes.
+once `bun run check:package` and `bun run check:example` pass.
 
 ## Commits
 

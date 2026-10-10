@@ -52,7 +52,7 @@ Always use Bun. Never use node, npm, npx, pnpm, yarn, vite, jest or ts-node.
 | Dead-code check            | `bun run deadcode` (knip)                |
 | Build to `dist/`           | `bun run build`                          |
 | Check the packed package   | `bun run check:package` (pack → publint, attw, consumer project) |
-| Use the build in the example | `bun run pack:example`, then `bun run test` in `examples/feedback-board` |
+| Check the build in the example | `bun run check:example` (pack:example → example typecheck + tests on its Postgres) |
 | Docs site (hot)            | `bun run docs:dev`                       |
 | Docs build (dead links)    | `bun run docs:build`                     |
 | Type-check                 | `bunx tsc --noEmit`                      |
