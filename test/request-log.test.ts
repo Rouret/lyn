@@ -1,5 +1,5 @@
 import { Lyn } from "#lyn/index";
-import { logRequest, resolveRequestId } from "#lyn/request-log";
+import { errorForLog, logRequest, resolveRequestId } from "#lyn/request-log";
 import { describe, expect, it } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 
@@ -42,6 +42,30 @@ describe("logRequest", () => {
         message: `GET /users ${status} 3.46ms`,
       },
     ]);
+  });
+});
+
+describe("errorForLog", () => {
+  it("keeps the stack frames and drops the message", () => {
+    const error = new Error("password=s3cr3t");
+    error.name = "DrizzleQueryError";
+    Object.assign(error, { errno: "23505" });
+
+    const logged = errorForLog(error);
+
+    expect(logged).toMatchObject({ name: "DrizzleQueryError", code: "23505" });
+    expect(JSON.stringify(logged)).not.toContain("s3cr3t");
+    expect("stack" in logged).toBe(true);
+  });
+
+  it("reads the code from the cause when the error has none", () => {
+    const error = new Error("Failed query: insert into users values ($1)\nparams: secret@example.com");
+    error.cause = Object.assign(new Error("duplicate key"), { errno: "23505" });
+
+    const logged = errorForLog(error);
+
+    expect(logged).toMatchObject({ name: "Error", code: "23505" });
+    expect(JSON.stringify(logged)).not.toContain("secret@example.com");
   });
 });
 

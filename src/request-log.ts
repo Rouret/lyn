@@ -49,3 +49,31 @@ export const runWithRequestLog = <T>(log: RequestLogger, run: () => T): T =>
 
 export const currentRequestLog = (): RequestLogger | undefined =>
   requestLogStorage.getStore();
+
+const stackFrames = (error: Error): string | undefined => {
+  const frames = error.stack
+    ?.split("\n")
+    .filter((line) => line.startsWith("    at ") || line.startsWith("\tat "))
+    .join("\n");
+  return frames === undefined || frames === "" ? undefined : frames;
+};
+
+const errorCode = (value: unknown): string | number | undefined => {
+  if (typeof value !== "object" || value === null) return undefined;
+  if ("errno" in value && typeof value.errno === "string") return value.errno;
+  if ("code" in value && (typeof value.code === "string" || typeof value.code === "number"))
+    return value.code;
+  return undefined;
+};
+
+// Drizzle puts the SQL and its parameter values in the error message.
+export const errorForLog = (error: unknown) => {
+  if (!(error instanceof Error)) return { name: "UnknownError" };
+  const stack = stackFrames(error);
+  const code = errorCode(error) ?? errorCode(error.cause);
+  return {
+    name: error.name,
+    ...(stack === undefined ? {} : { stack }),
+    ...(code === undefined ? {} : { code }),
+  };
+};

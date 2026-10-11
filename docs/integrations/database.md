@@ -216,7 +216,9 @@ new Lyn({ database: { schema, logQueries: true } });
 ```
 
 The values of the parameters are never logged, only their count: they
-may hold personal data or secrets. Off by default.
+may hold personal data or secrets. Off by default. The same rule applies
+when a query fails: the error log has the stack frames and the Postgres
+code, not the query text or the bound values.
 
 ## Startup and shutdown
 

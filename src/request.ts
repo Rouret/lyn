@@ -8,7 +8,7 @@ import {
   ValidationError,
 } from "#lyn/error";
 import { HTTP_STATUS } from "#lyn/http-status";
-import type { RequestLogger } from "#lyn/request-log";
+import { errorForLog, type RequestLogger } from "#lyn/request-log";
 import type { Route, RouteHandlerBodyResponse, SetDefinition } from "#lyn/types";
 import { readJsonBody } from "#lyn/body";
 import { parseParams } from "#lyn/params";
@@ -90,10 +90,10 @@ const handleRequestLifecycle = async (
     }
     const mappedError = mapError(error);
     if (mappedError) {
-      log.warn({ err: error }, `Handler error mapped to ${mappedError.code}`);
+      log.warn(errorForLog(error), `Handler error mapped to ${mappedError.code}`);
       return handleError(mappedError);
     }
-    log.error({ err: error }, "Unhandled error in route handler");
+    log.error(errorForLog(error), "Unhandled error in route handler");
     return handleError(new InternalServerError());
   }
 };

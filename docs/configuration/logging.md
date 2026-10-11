@@ -1,7 +1,9 @@
 # Logging
 
 Lyn logs with [pino](https://getpino.io). It writes one line per request,
-and the full stack trace of unexpected errors.
+and the stack frames of unexpected errors. The error message itself is
+left out: a database error's message contains the SQL and the values
+that were bound to it.
 
 ## Settings
 
