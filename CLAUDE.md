@@ -239,10 +239,13 @@ Users only see `new Lyn({ … })` options.
   then `applyMigrations` (advisory lock, so concurrent instances migrate
   once); failures → `LynDatabaseError("migrateOnStart failed: …")`.
 - Bun SQL JSON-encodes strings bound to json/jsonb params, so Drizzle's
-  `JSON.stringify` double-encoded them. `createDatabase` patches
-  `PgJson`/`PgJsonb.prototype.mapToDriverValue` to pass the value as-is.
-  `test/database-driver.test.ts` (load + JSON) guards it: re-run it on
-  every Bun or Drizzle upgrade, and drop the patch once upstream is fixed.
+  `JSON.stringify` double-encoded them. `createDatabase` sets
+  `mapToDriverValue` on each json/jsonb column of the schema so the value
+  is passed through. The shared `PgJson`/`PgJsonb` prototype is left
+  alone, so other Drizzle clients in the process keep `JSON.stringify`.
+  `test/database-driver.test.ts` (load + JSON) guards the round trip:
+  re-run it on every Bun or Drizzle upgrade, and drop the patch once
+  upstream is fixed.
 
 ### CORS (`src/features/cors.ts`)
 

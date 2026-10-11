@@ -7,7 +7,6 @@ import { currentRequestLog } from "#lyn/request-log";
 import { SQL } from "bun";
 import { sql, type Logger } from "drizzle-orm";
 import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
-import { PgJson, PgJsonb } from "drizzle-orm/pg-core";
 
 export type DatabaseSchema = Record<string, unknown>;
 
@@ -103,11 +102,28 @@ const queryLogger: Logger = {
     ),
 };
 
+const JSON_COLUMN_TYPES = new Set(["PgJson", "PgJsonb"]);
+
+const passJsonValue = (value: unknown) => value;
+
 // Bun SQL JSON-encodes a string bound to a json/jsonb parameter, so Drizzle's
-// JSON.stringify would store a JSON string instead of the object.
-const passJsonValuesToBunSql = () => {
-  PgJson.prototype.mapToDriverValue = (value) => value;
-  PgJsonb.prototype.mapToDriverValue = (value) => value;
+// JSON.stringify would store a JSON string instead of the object. The bypass
+// is set on the schema's columns, not on the shared prototype.
+const passJsonValuesToBunSql = (schema: DatabaseSchema) => {
+  const seen = new WeakSet<object>();
+  const visit = (value: unknown) => {
+    if (typeof value !== "object" || value === null || seen.has(value)) return;
+    seen.add(value);
+    if (
+      "columnType" in value &&
+      "mapToDriverValue" in value &&
+      JSON_COLUMN_TYPES.has(String(value.columnType))
+    ) {
+      value.mapToDriverValue = passJsonValue;
+    }
+    for (const child of Object.values(value)) visit(child);
+  };
+  visit(schema);
 };
 
 const createDatabase = (
@@ -118,7 +134,7 @@ const createDatabase = (
   }: Pick<DatabaseConfig<DatabaseSchema, never>, "schema" | "pool" | "logQueries">,
   url: string
 ): Database => {
-  passJsonValuesToBunSql();
+  passJsonValuesToBunSql(schema);
   return drizzle({
     client: new SQL(url, { ...DEFAULT_POOL, ...pool }),
     schema,

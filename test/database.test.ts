@@ -1,4 +1,4 @@
-import { eq, sql } from "#lyn/db";
+import { eq, json, jsonb, pgTable, PgJson, PgJsonb, sql, text } from "#lyn/db";
 import { LynDatabaseError, LynEnvError } from "#lyn/index";
 import { Lyn, z } from "#lyn/index";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
@@ -98,6 +98,27 @@ describe("database configuration", () => {
     });
 
     expect(Object.keys(app.env)).toEqual(["nodeEnv"]);
+  });
+
+  it("patches json columns of the configured schema only", () => {
+    const included = pgTable("included_json", {
+      meta: jsonb(),
+      body: json(),
+      title: text(),
+    });
+    const excluded = pgTable("excluded_json", { meta: jsonb() });
+    new Lyn({
+      ...TEST_LYN_CONFIG,
+      database: { schema: { included }, url: UNREACHABLE_DATABASE_URL },
+    });
+    const value = { secret: "keep" };
+
+    expect(included.meta.mapToDriverValue(value)).toBe(value);
+    expect(included.body.mapToDriverValue(value)).toBe(value);
+    expect(included.title.mapToDriverValue("keep")).toBe("keep");
+    expect(excluded.meta.mapToDriverValue(value)).toBe(JSON.stringify(value));
+    expect(PgJsonb.prototype.mapToDriverValue(value)).toBe(JSON.stringify(value));
+    expect(PgJson.prototype.mapToDriverValue(value)).toBe(JSON.stringify(value));
   });
 
   it("throws when app.db is used without a database", () => {

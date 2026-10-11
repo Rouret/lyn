@@ -59,6 +59,7 @@ export const app = new Lyn({
 `,
   "check.ts": `import { PgJsonb } from "@rouret/lyn/db";
 import { app } from "./src/app";
+import { notes } from "./src/db/schema";
 
 const response = await app.handle(
   new Request("http://localhost/notes", {
@@ -71,9 +72,12 @@ if (response.status !== ${CREATED_STATUS})
   throw new Error(\`POST /notes answered \${response.status}: \${await response.text()}\`);
 
 const json = { a: 1 };
-const driverValue: unknown = PgJsonb.prototype.mapToDriverValue(json);
-if (driverValue !== json)
-  throw new Error("The JSON patch did not reach the app's drizzle-orm: it is bundled or duplicated");
+const columnValue: unknown = notes.meta.mapToDriverValue(json);
+if (columnValue !== json)
+  throw new Error("The JSON column was not patched");
+const prototypeValue: unknown = PgJsonb.prototype.mapToDriverValue(json);
+if (prototypeValue === json)
+  throw new Error("The JSON patch leaked onto PgJsonb.prototype");
 
 console.log("handle() and the shared drizzle-orm instance work");
 `,
