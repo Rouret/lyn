@@ -338,8 +338,9 @@ Treat these as current behaviour. Fix them only when asked, and update
 
 - `LynError` is not exported from `src/index.ts`; any thrown object with
   `isLynError: true` is treated as one (duck-typed).
-- `ValidationError` does `JSON.parse(zodError.message)`; relies on Zod 4's
-  message format.
+- `ValidationError` does `JSON.parse(zodError.message)` and drops each
+  issue's `pattern`; relies on Zod 4's message format. A message that is
+  not JSON becomes an empty `cause`.
 - `DELETE` defaults to 204, so a returned body is dropped by the runtime.
 - An app with a database can't `listen()` again after `stop()` (the pool is
   closed); tests and scripts create a new app instead.

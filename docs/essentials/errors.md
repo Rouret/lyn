@@ -22,7 +22,8 @@ Every error Lyn sends has the same JSON shape:
 - `code`: a stable identifier your client can test.
 - `message`: a human-readable explanation.
 - `cause`: extra details, when there are some. For `VALIDATION`, the list
-  of Zod issues.
+  of Zod issues. The `pattern` field is left out: it is the regular
+  expression your schema uses, and clients do not need it.
 
 ## Error codes
 

@@ -173,6 +173,27 @@ describe("Body parsing", () => {
     ).toThrow("server.maxBodyBytes must be a positive integer");
   });
 
+  it("omits the schema pattern from a validation error", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).post("/", () => "ok", {
+      body: z.object({ email: z.email() }),
+    });
+
+    const response = await app.handle(
+      new Request("http://lyn.test/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "not-an-email" }),
+      })
+    );
+    const body = (await response.json()) as {
+      cause: { path: string[]; pattern?: string }[];
+    };
+
+    expect(response.status).toBe(400);
+    expect(body.cause[0]?.path).toEqual(["email"]);
+    expect(body.cause.some((issue) => "pattern" in issue)).toBe(false);
+  });
+
   it("returns 400 INVALID_JSON for a malformed body", async () => {
     const response = await postRaw('{"name":', "application/json");
 

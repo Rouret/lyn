@@ -8,7 +8,7 @@ export class LynError extends Error {
   isLynError: boolean;
   headers: Headers = new Headers();
 
-  constructor(code: string, status: number, message: string, cause?: string) {
+  constructor(code: string, status: number, message: string, cause?: unknown) {
     super(message);
     this.cause = cause;
     this.code = code;
@@ -23,9 +23,24 @@ export const isLynError = (error: unknown): error is LynError =>
   "isLynError" in error &&
   error.isLynError === true;
 
+const issuesForClient = (error?: ZodError): unknown => {
+  let issues: unknown;
+  try {
+    issues = JSON.parse(error?.message || "[]");
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(issues)) return [];
+  return issues.map((issue) => {
+    if (typeof issue !== "object" || issue === null || !("pattern" in issue)) return issue;
+    const { pattern: _pattern, ...rest } = issue;
+    return rest;
+  });
+};
+
 export class ValidationError extends LynError {
   constructor(cause?: ZodError<any> | undefined) {
-    super("VALIDATION", HTTP_STATUS.BAD_REQUEST, "Bad Request", JSON.parse(cause?.message || "{}"));
+    super("VALIDATION", HTTP_STATUS.BAD_REQUEST, "Bad Request", issuesForClient(cause));
   }
 }
 
