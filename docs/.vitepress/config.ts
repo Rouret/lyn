@@ -12,7 +12,7 @@ export default defineConfig({
       { text: "Configuration", link: "/configuration/overview", activeMatch: "^/configuration/" },
       { text: "Reference", link: "/reference/api", activeMatch: "^/reference/" },
       {
-        text: "v0.0.1",
+        text: "v1.0.0",
         items: [
           { text: "Roadmap", link: "https://github.com/Rouret/lyn#roadmap" },
           { text: "Contributing", link: "https://github.com/Rouret/lyn/blob/main/CONTRIBUTING.md" },

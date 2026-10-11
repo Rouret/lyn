@@ -57,7 +57,7 @@ That's the whole app. The connection is checked at startup, `db` is typed
 from your tables, invalid bodies get a `400`.
 
 ::: tip Not on npm yet
-Lyn is at `0.0.1`. Until the first release, [use it from a clone](/guide/getting-started#installation).
+Lyn is at `1.0.0`. Until the first release, [use it from a clone](/guide/getting-started#installation).
 :::
 
 ## What you don't have to do

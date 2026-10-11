@@ -45,7 +45,7 @@ await new Lyn()
 
 ## Status
 
-Lyn is at `0.0.1` and **not on npm yet**. It runs on Bun only, and its API
+Lyn is at `1.0.0` and **not on npm yet**. It runs on Bun only, and its API
 may still change. See [Getting started](https://rouret.github.io/lyn/guide/getting-started)
 to use it from a clone.
 

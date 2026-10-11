@@ -34,7 +34,7 @@ Bun**. It provides, on top of `Bun.serve`:
 It targets POCs, solopreneurs and agencies: users should write as little
 configuration as possible, and every public API must be precisely typed.
 Auth (better-auth on top of the database) is planned but **not wired in
-yet**. The package (`@rouret/lyn`, `version 0.0.1`) is **not published**
+yet**. The package (`@rouret/lyn`, `version 1.0.0`) is **not published**
 yet; `bun run build` writes it to `dist/`.
 
 ## Commands
