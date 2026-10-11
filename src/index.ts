@@ -15,6 +15,7 @@ import {
   type DatabaseSchema,
 } from "#lyn/features/database";
 import type { Feature } from "#lyn/features/feature";
+import { resolveMaxBodyBytes } from "#lyn/body";
 import { isRequestHostAllowed, resolveAllowedHosts } from "#lyn/host";
 import { internalLogger, logger } from "#lyn/logger";
 import { handleRouteMatch, invalidHostResponse } from "#lyn/request";
@@ -70,6 +71,7 @@ class Lyn<
   private readonly features: Feature[];
   private readonly appContext: Record<string, unknown>;
   private readonly allowedHosts: ReadonlySet<string>;
+  private readonly maxBodyBytes: number;
   public readonly env: LynEnv<TEnvConfig>;
 
   constructor(config: LynConfig<TEnvConfig, TSchema> = {}) {
@@ -91,6 +93,7 @@ class Lyn<
       this.config.server?.hostname ?? LOOPBACK_HOST,
       this.config.server?.allowedHosts
     );
+    this.maxBodyBytes = resolveMaxBodyBytes(this.config.server?.maxBodyBytes);
 
     internalLogger.info("All environment variables are valid");
 
@@ -214,6 +217,7 @@ class Lyn<
             log: requestLogger,
             appContext: this.appContext,
             mapError: this.mapError,
+            maxBodyBytes: this.maxBodyBytes,
           })
         )
       : invalidHostResponse();
@@ -257,6 +261,7 @@ class Lyn<
     this.server = Bun.serve({
       hostname,
       port,
+      maxRequestBodySize: this.maxBodyBytes,
       fetch: (request) => this.handle(request),
       idleTimeout: SERVER_IDLE_TIMEOUT_SECONDS,
     });

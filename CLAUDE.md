@@ -91,7 +91,7 @@ src/
   coerce.ts    coerceValue: string → number/boolean according to the zod field (unwraps .optional())
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
   params.ts    parseParams: coerceValue on router params, safeParse
-  body.ts      readJsonBody: NO_BODY, JSON content type (415), JSON.parse (INVALID_JSON)
+  body.ts      readJsonBody: size cap (413, default 1 MiB, server.maxBodyBytes), NO_BODY, JSON content type (415), JSON.parse inside try (INVALID_JSON)
   request-log.ts  resolveRequestId (safe incoming X-Request-Id or UUID), logRequest (level by status),
                runWithRequestLog / currentRequestLog (AsyncLocalStorage set by handle(), used by query logs)
   shutdown.ts  one shared SIGINT/SIGTERM listener: stops every running app, then re-raises the signal
@@ -177,7 +177,7 @@ handleRouteMatch(request, pathname, match)
 handleRequestLifecycle
   └─ set = { headers: new Headers(), status: default for method }
   └─ handleRequest
-       body   → readJsonBody: body? JSON content type? JSON.parse, safeParse  → NO_BODY / UNSUPPORTED_MEDIA_TYPE / INVALID_JSON / VALIDATION
+       body   → readJsonBody: size? JSON content type? JSON.parse in try, safeParse  → PAYLOAD_TOO_LARGE / NO_BODY / UNSUPPORTED_MEDIA_TYPE / INVALID_JSON / VALIDATION
        params → parseParams: coerce per field, safeParse                       → VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
        return handler(context)   (awaited, so async handlers work)

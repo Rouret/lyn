@@ -34,6 +34,7 @@ type RequestDispatch = {
   log: RequestLogger;
   appContext: Record<string, unknown>;
   mapError: (error: unknown) => LynError | undefined;
+  maxBodyBytes: number;
 };
 
 export const handleRouteMatch = ({
@@ -43,6 +44,7 @@ export const handleRouteMatch = ({
   log,
   appContext,
   mapError,
+  maxBodyBytes,
 }: RequestDispatch): Promise<Response> | Response => {
   switch (match.status) {
     case "found":
@@ -50,6 +52,7 @@ export const handleRouteMatch = ({
         log,
         appContext,
         mapError,
+        maxBodyBytes,
       });
     case "method_not_allowed":
       if (request.method === "OPTIONS") {
@@ -70,7 +73,12 @@ const handleRequestLifecycle = async (
   request: Request,
   route: AnyRoute,
   params: Record<string, string>,
-  { log, appContext, mapError }: Pick<RequestDispatch, "log" | "appContext" | "mapError">
+  {
+    log,
+    appContext,
+    mapError,
+    maxBodyBytes,
+  }: Pick<RequestDispatch, "log" | "appContext" | "mapError" | "maxBodyBytes">
 ): Promise<Response> => {
   try {
     const set: SetDefinition = {
@@ -81,6 +89,7 @@ const handleRequestLifecycle = async (
     const responseBody = await handleRequest(request, params, route, {
       set,
       appContext,
+      maxBodyBytes,
     });
 
     return handleResponse(responseBody, set.headers, set.status);
@@ -129,13 +138,17 @@ const handleRequest = async (
   request: Request,
   params: Record<string, string>,
   { handler, validation }: AnyRoute,
-  { set, appContext }: { set: SetDefinition; appContext: Record<string, unknown> }
+  {
+    set,
+    appContext,
+    maxBodyBytes,
+  }: { set: SetDefinition; appContext: Record<string, unknown>; maxBodyBytes: number }
 ): Promise<RouteHandlerBodyResponse> => {
   const validatedInput: { body?: unknown; params?: unknown; query?: unknown } =
     {};
 
   if (validation?.body) {
-    const body = await readJsonBody(request);
+    const body = await readJsonBody(request, maxBodyBytes);
     validatedInput.body = dataOrThrow(validation.body.safeParse(body));
   }
 

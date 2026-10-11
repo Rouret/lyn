@@ -56,6 +56,16 @@ export class UnsupportedMediaTypeError extends LynError {
   }
 }
 
+export class PayloadTooLargeError extends LynError {
+  constructor() {
+    super(
+      "PAYLOAD_TOO_LARGE",
+      HTTP_STATUS.PAYLOAD_TOO_LARGE,
+      "Request body is too large"
+    );
+  }
+}
+
 export class InvalidJsonError extends LynError {
   constructor() {
     super("INVALID_JSON", HTTP_STATUS.BAD_REQUEST, "Request body is not valid JSON");

@@ -23,6 +23,7 @@ const app = new Lyn({
 | `start.hideLynLogo` | Hides the logo printed by `listen()` (default `false`) | |
 | `server.hostname` | Interface `listen()` binds. Default `127.0.0.1` (this machine only). `"0.0.0.0"` opens it to the network | [Routing](../essentials/routing.md#starting-and-stopping) |
 | `server.allowedHosts` | Hostnames accepted in `Host` while serving. Default: loopback names | [Routing](../essentials/routing.md#starting-and-stopping) |
+| `server.maxBodyBytes` | Maximum JSON body size in bytes. Default 1 MiB. Larger bodies are rejected before parsing | [Validation](../essentials/validation.md#body) |
 
 Logging is configured with environment variables: see [Logging](logging.md).
 

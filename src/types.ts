@@ -66,6 +66,12 @@ export type LynConfig<
      * Defaults to `127.0.0.1`, `localhost` and `::1`.
      */
     allowedHosts?: string[];
+    /**
+     * Maximum accepted JSON body, in bytes. A larger body is rejected
+     * before it is parsed.
+     * @default 1048576
+     */
+    maxBodyBytes?: number;
   };
 };
 

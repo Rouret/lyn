@@ -121,6 +121,58 @@ describe("Body parsing", () => {
     expect(await errorCode(response)).toBe("UNSUPPORTED_MEDIA_TYPE");
   });
 
+  it("returns 413 PAYLOAD_TOO_LARGE when the body is over the limit", async () => {
+    const app = new Lyn({ ...TEST_LYN_CONFIG, server: { maxBodyBytes: 8 } }).post(
+      "/users",
+      ({ body }) => body,
+      { body: z.object({ name: z.string() }) }
+    );
+    const response = await app.handle(
+      new Request("http://lyn.test/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Ada Lovelace" }),
+      })
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      code: "PAYLOAD_TOO_LARGE",
+      message: "Request body is too large",
+    });
+  });
+
+  it("returns 413 when the streamed body exceeds the limit", async () => {
+    const app = new Lyn({ ...TEST_LYN_CONFIG, server: { maxBodyBytes: 8 } }).post(
+      "/users",
+      ({ body }) => body,
+      { body: z.object({ name: z.string() }) }
+    );
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"name":"Ada Lovelace"}'));
+        controller.close();
+      },
+    });
+    const response = await app.handle(
+      new Request("http://lyn.test/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: stream,
+        duplex: "half",
+      })
+    );
+
+    expect(response.status).toBe(413);
+    expect(await errorCode(response)).toBe("PAYLOAD_TOO_LARGE");
+  });
+
+  it("rejects a non-positive body limit", () => {
+    expect(
+      () => new Lyn({ ...TEST_LYN_CONFIG, server: { maxBodyBytes: 0 } })
+    ).toThrow("server.maxBodyBytes must be a positive integer");
+  });
+
   it("returns 400 INVALID_JSON for a malformed body", async () => {
     const response = await postRaw('{"name":', "application/json");
 

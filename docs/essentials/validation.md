@@ -51,6 +51,7 @@ or any `+json` type (`application/merge-patch+json`…). Lyn checks, in order:
 | --- | --- |
 | No body, or an empty one | `400 NO_BODY` |
 | `Content-Type` missing or not JSON | `415 UNSUPPORTED_MEDIA_TYPE` |
+| The body is larger than `server.maxBodyBytes` (1 MiB) | `413 PAYLOAD_TOO_LARGE` |
 | The body is not valid JSON | `400 INVALID_JSON` |
 | The body doesn't match the schema | `400 VALIDATION` |
 

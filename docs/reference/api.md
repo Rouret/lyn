@@ -33,6 +33,7 @@ Creates an app. Reads and checks the environment variables right away.
 | `start.hideLynLogo` | `boolean` | [Configuration](../configuration/overview.md) |
 | `server.hostname` | `string`, default `"127.0.0.1"` | [Routing](../essentials/routing.md#starting-and-stopping) |
 | `server.allowedHosts` | `string[]`, default loopback names | [Routing](../essentials/routing.md#starting-and-stopping) |
+| `server.maxBodyBytes` | `number`, default `1048576` | [Validation](../essentials/validation.md#body) |
 
 ## Routes
 
@@ -72,7 +73,7 @@ See [Handlers](../essentials/handlers.md).
 
 ## Error codes
 
-`INVALID_HOST`, `VALIDATION`, `NO_BODY`, `INVALID_JSON`, `UNSUPPORTED_MEDIA_TYPE`,
+`INVALID_HOST`, `VALIDATION`, `NO_BODY`, `INVALID_JSON`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`,
 `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `CONFLICT`, `INTERNAL_SERVER_ERROR`.
 See [Errors](../essentials/errors.md#error-codes).
 
