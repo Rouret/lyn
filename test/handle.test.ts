@@ -101,6 +101,38 @@ describe("handle", () => {
   });
 });
 
+const listenAddresses = async (url: string): Promise<string[]> => {
+  const port = Number(new URL(url).port);
+  if (process.platform === "linux") {
+    const hexPort = port.toString(16).toUpperCase().padStart(4, "0");
+    const tables = await Promise.all(
+      ["/proc/net/tcp", "/proc/net/tcp6"].map((path) => Bun.file(path).text().catch(() => ""))
+    );
+    return tables
+      .flatMap((table) => table.split("\n"))
+      .map((line) => line.trim().split(/\s+/))
+      .filter((parts) => parts[3] === "0A" && parts[1]?.toUpperCase().endsWith(`:${hexPort}`))
+      .map((parts) => {
+        const hex = parts[1]!.split(":")[0]!;
+        if (hex === "0100007F") return "127.0.0.1";
+        if (hex === "00000000") return "0.0.0.0";
+        if (hex === "00000000000000000000000000000001") return "::1";
+        if (hex === "00000000000000000000000000000000") return "::";
+        return hex;
+      });
+  }
+
+  const probe = Bun.spawn(["lsof", "-nP", `-iTCP:${port}`, "-sTCP:LISTEN"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const output = await new Response(probe.stdout).text();
+  await probe.exited;
+  return [...output.matchAll(/(\S+):\d+ \(LISTEN\)/g)].map((match) => match[1] ?? "");
+};
+
+const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "[::1]"]);
+
 describe("listen", () => {
   it("serves the same routes over HTTP", async () => {
     const app = await new Lyn(TEST_LYN_CONFIG)
@@ -117,6 +149,30 @@ describe("listen", () => {
       expect(missing.status).toBe(404);
     } finally {
       await app.stop();
+    }
+  });
+
+  it("binds the loopback interface unless a hostname is set", async () => {
+    const local = await new Lyn(TEST_LYN_CONFIG).get("/", () => "ok").listen();
+    const exposed = await new Lyn({
+      ...TEST_LYN_CONFIG,
+      server: { hostname: "0.0.0.0" },
+    })
+      .get("/", () => "ok")
+      .listen();
+
+    try {
+      expect(local.url.startsWith("http://127.0.0.1:")).toBe(true);
+      expect(exposed.url.startsWith("http://127.0.0.1:")).toBe(true);
+      const localAddresses = await listenAddresses(local.url);
+      const exposedAddresses = await listenAddresses(exposed.url);
+      expect(localAddresses.length).toBeGreaterThan(0);
+      expect(localAddresses.every((address) => LOOPBACK_ADDRESSES.has(address))).toBe(true);
+      expect(exposedAddresses.some((address) => address === "0.0.0.0" || address === "::" || address === "*")).toBe(
+        true
+      );
+    } finally {
+      await Promise.all([local.stop(), exposed.stop()]);
     }
   });
 

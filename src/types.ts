@@ -50,6 +50,17 @@ export type LynConfig<
      */
     hideLynLogo?: boolean;
   };
+  /**
+   * How `listen()` exposes the process. Omitted, the server accepts
+   * connections from this machine only.
+   */
+  server?: {
+    /**
+     * Interface to bind. `"0.0.0.0"` accepts connections from the network.
+     * @default "127.0.0.1"
+     */
+    hostname?: string;
+  };
 };
 
 export type SetDefinition = {

@@ -45,6 +45,13 @@ const BUILT_IN_FEATURES = [databaseFeature, corsFeature];
 const ANY_FREE_PORT = 0;
 const LOOPBACK_HOST = "127.0.0.1";
 const SERVER_IDLE_TIMEOUT_SECONDS = 30;
+const WILDCARD_BIND_HOSTS = new Set(["0.0.0.0", "::"]);
+
+const advertisedHost = (hostname: string) =>
+  WILDCARD_BIND_HOSTS.has(hostname) ? LOOPBACK_HOST : hostname;
+
+const formatHttpHost = (hostname: string) =>
+  hostname.includes(":") ? `[${hostname}]` : hostname;
 
 type ServerStatus = "stopped" | "starting" | "running";
 
@@ -223,6 +230,10 @@ class Lyn<
     if (this.status === "starting")
       throw new Error("Server is already starting.");
 
+    const hostname = this.config.server?.hostname ?? LOOPBACK_HOST;
+    if (hostname.trim() === "")
+      throw new Error("server.hostname must be a non-empty host");
+
     this.status = "starting";
     try {
       for (const feature of this.features) await feature.onStart?.();
@@ -232,6 +243,7 @@ class Lyn<
     }
 
     this.server = Bun.serve({
+      hostname,
       port,
       fetch: (request) => this.handle(request),
       idleTimeout: SERVER_IDLE_TIMEOUT_SECONDS,
@@ -256,7 +268,7 @@ class Lyn<
 
     internalLogger.info(`Server is running on port ${this.server.port}`);
 
-    this.baseUrl = `http://${LOOPBACK_HOST}:${this.server.port}`;
+    this.baseUrl = `http://${formatHttpHost(advertisedHost(hostname))}:${this.server.port}`;
 
     stopOnShutdownSignal(this);
 

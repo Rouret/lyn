@@ -31,6 +31,7 @@ Creates an app. Reads and checks the environment variables right away.
 | `cors` | `{ origin, credentials?, allowedHeaders?, exposedHeaders?, maxAge? }` | [CORS](../configuration/cors.md) |
 | `database` | `{ schema, url?, pool?, logQueries?, migrateOnStart? }` | [Database](../integrations/database.md) |
 | `start.hideLynLogo` | `boolean` | [Configuration](../configuration/overview.md) |
+| `server.hostname` | `string`, default `"127.0.0.1"` | [Routing](../essentials/routing.md#starting-and-stopping) |
 
 ## Routes
 
@@ -61,7 +62,7 @@ See [Handlers](../essentials/handlers.md).
 
 | Member | Description |
 | --- | --- |
-| `listen(port?)` | Runs the startup checks, then serves. Returns a promise of the app. |
+| `listen(port?)` | Runs the startup checks, then serves on `127.0.0.1` (or `server.hostname`). Returns a promise of the app. |
 | `stop()` | Stops the server and closes the database connection. |
 | `handle(request)` | Runs a `Request` through the app without a server. Returns a promise of the `Response`. |
 | `url` | Base URL of the running server. Throws before `listen()`. |

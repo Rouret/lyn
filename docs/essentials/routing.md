@@ -99,6 +99,10 @@ await app.stop();
 - `listen(port?)` runs the startup checks, such as the
   [database connection](../integrations/database.md#startup-and-shutdown),
   then starts serving. Without a port, Bun picks a free one.
+- The server accepts connections from this machine only
+  (`127.0.0.1`). To accept them from the network, set
+  `server.hostname` to `"0.0.0.0"`. `app.url` stays a loopback URL in
+  that case, because `0.0.0.0` is not an address you can request.
 - `stop()` stops the server and closes the database connection. Lyn also
   calls it when the process receives `SIGINT` (Ctrl+C) or `SIGTERM`
   (`docker stop`, Kubernetes), then lets the process exit. If your code

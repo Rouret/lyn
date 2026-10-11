@@ -130,10 +130,12 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   use it. Only unexpected errors are logged inside the lifecycle (with the
   same child logger); LynErrors are covered by the request line.
 - `listen(port = 0)` is async: status `stopped → starting`, runs every
-  feature's `onStart` (database ping), then calls `Bun.serve({ fetch: req => this.handle(req), idleTimeout: 30 })`
-  (Bun's native `routes` option is deliberately **not** used, so that
-  `handle()` and the server cannot diverge), prints the ASCII logo unless
-  `config.start.hideLynLogo`, sets `baseUrl = http://127.0.0.1:<port>`.
+  feature's `onStart` (database ping), then calls `Bun.serve({ hostname, fetch: req => this.handle(req), idleTimeout: 30 })`.
+  `hostname` defaults to `127.0.0.1` (`server.hostname` overrides it; `"0.0.0.0"` and `"::"` are wildcards).
+  Bun's native `routes` option is deliberately **not** used, so that
+  `handle()` and the server cannot diverge. The ASCII logo is printed unless
+  `config.start.hideLynLogo`. `baseUrl` is `http://127.0.0.1:<port>` for a
+  loopback or wildcard bind, otherwise `http://<hostname>:<port>`.
   Port `0` = random free port.
 - `url` getter throws if `listen()` has not been called.
 - `listen()` rejects while `starting` or `running`; a failed `onStart` resets
