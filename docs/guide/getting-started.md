@@ -7,30 +7,9 @@
 
 ## Installation
 
-Lyn is not on npm yet. Until it is, clone it next to your project:
-
 ```bash
-git clone https://github.com/Rouret/lyn.git
-cd lyn && bun install
+bun add @rouret/lyn
 ```
-
-Then map the `@rouret/lyn` imports to the clone in your project's
-`tsconfig.json`. Bun reads these paths at runtime, so no build step is
-needed.
-
-```json
-{
-  "compilerOptions": {
-    "paths": {
-      "@rouret/lyn": ["../lyn/src/index.ts"],
-      "@rouret/lyn/db": ["../lyn/src/db.ts"]
-    }
-  }
-}
-```
-
-Every example in this documentation imports from `@rouret/lyn`, as it
-will once the package is published.
 
 ## Your first server
 

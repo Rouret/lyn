@@ -45,9 +45,8 @@ await new Lyn()
 
 ## Status
 
-Lyn is at `1.0.0` and **not on npm yet**. It runs on Bun only, and its API
-may still change. See [Getting started](https://rouret.github.io/lyn/guide/getting-started)
-to use it from a clone.
+Lyn is at `1.0.0` and runs on Bun only. Install it with
+`bun add @rouret/lyn`, then follow [Getting started](https://rouret.github.io/lyn/guide/getting-started).
 
 ## Roadmap
 
@@ -61,7 +60,7 @@ to use it from a clone.
 - [ ] Authentication
 - [ ] Example project
 - [ ] Security checklist
-- [ ] Publish to npm
+- [x] Publish to npm
 
 ## Contributing
 

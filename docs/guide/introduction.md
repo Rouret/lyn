@@ -40,8 +40,6 @@ for you so you can start writing routes right away.
 
 ## What it doesn't do (yet)
 
-- **Not on npm yet.** Lyn is at `1.0.0` and its API can still change.
-  [Getting started](getting-started.md) shows how to use it from a clone.
 - **Bun only.** Lyn does not run on Node.js or Deno.
 - **No authentication yet.** It is the next big feature.
 - **No middlewares, route groups or plugins** for now.
