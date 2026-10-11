@@ -1,5 +1,5 @@
 import { afterAll, afterEach, describe, expect, it } from "bun:test";
-import { mkdtemp, readdir, rm, symlink } from "node:fs/promises";
+import { mkdtemp, readdir, rm, symlink, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { SQL } from "bun";
@@ -142,6 +142,19 @@ describe("lyn db generate", () => {
     expect(stderr).toContain(
       "No schema at src/db/schema.ts: create it, or set database.schema in lyn.config.ts"
     );
+  });
+
+  it("does not run a drizzle-kit installed above the project", async () => {
+    const parent = await createProject({});
+    const project = await mkdtemp(join(parent, "app-"));
+    projects.push(project);
+    await mkdir(join(project, "src/db"), { recursive: true });
+    await writeFile(join(project, "src/db/schema.ts"), await SCHEMA_SOURCE.text());
+
+    const { stderr, exitCode } = await runCli(project, ["db", "generate"]);
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("drizzle-kit is not installed: run `bun add -d drizzle-kit`");
   });
 
   it("explains how to install drizzle-kit when it is missing", async () => {

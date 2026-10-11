@@ -128,6 +128,9 @@ once as a dev dependency:
 bun add -d drizzle-kit
 ```
 
+Lyn runs the `drizzle-kit` installed in this project's `node_modules`.
+A copy in a parent directory is ignored.
+
 ```bash
 bunx lyn db generate   # write the SQL for your schema changes to drizzle/
 bunx lyn db migrate    # apply the pending migrations to DATABASE_URL

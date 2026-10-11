@@ -7,7 +7,7 @@ import { SQL } from "bun";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 export const DB_COMMANDS = ["generate", "migrate", "studio"] as const;
 
@@ -16,14 +16,11 @@ export type DbCommand = (typeof DB_COMMANDS)[number];
 const readDatabaseUrl = () => parseEnvs(DATABASE_URL_ENV_CONFIG)[0].databaseUrl;
 
 const findDrizzleKitBin = (projectRoot: string): string => {
-  for (let dir = projectRoot; ; dir = dirname(dir)) {
-    const bin = join(dir, "node_modules", "drizzle-kit", "bin.cjs");
-    if (existsSync(bin)) return bin;
-    if (dirname(dir) === dir)
-      throw new Error(
-        "drizzle-kit is not installed: run `bun add -d drizzle-kit` to use `lyn db generate` and `lyn db studio`"
-      );
-  }
+  const bin = join(projectRoot, "node_modules", "drizzle-kit", "bin.cjs");
+  if (existsSync(bin)) return bin;
+  throw new Error(
+    "drizzle-kit is not installed: run `bun add -d drizzle-kit` to use `lyn db generate` and `lyn db studio`"
+  );
 };
 
 const assertSchemaExists = (paths: DatabasePaths) => {

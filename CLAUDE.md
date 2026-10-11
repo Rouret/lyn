@@ -302,8 +302,8 @@ change ships with `@ts-expect-error` / `satisfies` cases in
 ### CLI (`src/cli/`)
 
 - `lyn db generate | studio` spawn drizzle-kit's `bin.cjs` with
-  `bun --bun`, from the project's `node_modules` (searched upwards, never
-  auto-installed). drizzle-kit is an **optional peer dependency**: missing
+  `bun --bun`, from the project's own `node_modules` (parent directories
+  are not searched, never auto-installed). drizzle-kit is an **optional peer dependency**: missing
   → error telling to `bun add -d drizzle-kit`. Lyn writes a temporary
   `drizzle.config.ts` (dialect, schema/out paths relative to the project,
   `casing: "snake_case"`, `process.env.DATABASE_URL`) and deletes it after;
