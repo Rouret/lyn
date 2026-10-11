@@ -15,8 +15,9 @@ import {
   type DatabaseSchema,
 } from "#lyn/features/database";
 import type { Feature } from "#lyn/features/feature";
+import { isRequestHostAllowed, resolveAllowedHosts } from "#lyn/host";
 import { internalLogger, logger } from "#lyn/logger";
-import { handleRouteMatch } from "#lyn/request";
+import { handleRouteMatch, invalidHostResponse } from "#lyn/request";
 import { logRequest, resolveRequestId, runWithRequestLog } from "#lyn/request-log";
 import { createRouter } from "#lyn/router";
 import { forgetOnShutdownSignal, stopOnShutdownSignal } from "#lyn/shutdown";
@@ -68,6 +69,7 @@ class Lyn<
   private config: LynConfig<TEnvConfig, TSchema>;
   private readonly features: Feature[];
   private readonly appContext: Record<string, unknown>;
+  private readonly allowedHosts: ReadonlySet<string>;
   public readonly env: LynEnv<TEnvConfig>;
 
   constructor(config: LynConfig<TEnvConfig, TSchema> = {}) {
@@ -85,6 +87,10 @@ class Lyn<
       ...DEFAULT_LYN_CONFIG,
       ...config,
     };
+    this.allowedHosts = resolveAllowedHosts(
+      this.config.server?.hostname ?? LOOPBACK_HOST,
+      this.config.server?.allowedHosts
+    );
 
     internalLogger.info("All environment variables are valid");
 
@@ -194,17 +200,23 @@ class Lyn<
     const requestId = resolveRequestId(request);
     const requestLogger = internalLogger.child({ requestId });
     const { pathname } = new URL(request.url);
+    const servedPort = this.server?.port;
+    const hostAllowed =
+      servedPort === undefined ||
+      isRequestHostAllowed(request, this.allowedHosts, servedPort);
 
-    const routedResponse = await runWithRequestLog(requestLogger, () =>
-      handleRouteMatch({
-        request,
-        pathname,
-        match: this.router.match(request.method, pathname),
-        log: requestLogger,
-        appContext: this.appContext,
-        mapError: this.mapError,
-      })
-    );
+    const routedResponse = hostAllowed
+      ? await runWithRequestLog(requestLogger, () =>
+          handleRouteMatch({
+            request,
+            pathname,
+            match: this.router.match(request.method, pathname),
+            log: requestLogger,
+            appContext: this.appContext,
+            mapError: this.mapError,
+          })
+        )
+      : invalidHostResponse();
     const response = this.features.reduce(
       (current, feature) => feature.onResponse?.(request, current) ?? current,
       routedResponse

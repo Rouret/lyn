@@ -176,6 +176,36 @@ describe("listen", () => {
     }
   });
 
+  it("rejects a Host header that is not allowed while serving", async () => {
+    const app = await new Lyn({
+      ...TEST_LYN_CONFIG,
+      server: { allowedHosts: ["app.test"] },
+    })
+      .get("/", () => "ok")
+      .listen();
+    const port = new URL(app.url).port;
+
+    try {
+      const allowed = await fetch(app.url, { headers: { host: `app.test:${port}` } });
+      const refused = await fetch(app.url, { headers: { host: `evil.example:${port}` } });
+
+      expect(await allowed.text()).toBe("ok");
+      expect(refused.status).toBe(400);
+      expect(await refused.json()).toEqual({
+        code: "INVALID_HOST",
+        message: "This host is not allowed",
+      });
+    } finally {
+      await app.stop();
+    }
+  });
+
+  it("rejects an empty allowed host list", () => {
+    expect(
+      () => new Lyn({ ...TEST_LYN_CONFIG, server: { allowedHosts: [] } })
+    ).toThrow("server.allowedHosts must list at least one host");
+  });
+
   it("refuses to listen while already running", async () => {
     const app = await new Lyn(TEST_LYN_CONFIG).get("/", () => "ok").listen();
 

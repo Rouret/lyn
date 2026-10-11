@@ -95,6 +95,7 @@ src/
   request-log.ts  resolveRequestId (safe incoming X-Request-Id or UUID), logRequest (level by status),
                runWithRequestLog / currentRequestLog (AsyncLocalStorage set by handle(), used by query logs)
   shutdown.ts  one shared SIGINT/SIGTERM listener: stops every running app, then re-raises the signal
+  host.ts      Host header allowlist checked while listen() is serving
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, throws LynEnvError on invalid/missing
@@ -127,7 +128,11 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   parse pathname → `router.match` → `handleRouteMatch({ …, log, appContext })`
   → each feature's `onResponse` → `X-Request-Id` header → one `logRequest`
   line. Tests and `listen()` both
-  use it. Only unexpected errors are logged inside the lifecycle (with the
+  use it. While a server is running, a `Host` header outside
+  `server.allowedHosts` (default `127.0.0.1`, `localhost`, `::1`, plus the
+  bind address when it is not a wildcard) is `400 INVALID_HOST` before
+  routing. `handle()` without `listen()` does not check `Host`.
+  Only unexpected errors are logged inside the lifecycle (with the
   same child logger); LynErrors are covered by the request line.
 - `listen(port = 0)` is async: status `stopped → starting`, runs every
   feature's `onStart` (database ping), then calls `Bun.serve({ hostname, fetch: req => this.handle(req), idleTimeout: 30 })`.

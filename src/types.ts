@@ -60,6 +60,12 @@ export type LynConfig<
      * @default "127.0.0.1"
      */
     hostname?: string;
+    /**
+     * Hostnames accepted in the `Host` header while `listen()` is serving.
+     * The bind address is included too, unless it is `0.0.0.0` or `::`.
+     * Defaults to `127.0.0.1`, `localhost` and `::1`.
+     */
+    allowedHosts?: string[];
   };
 };
 

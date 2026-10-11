@@ -22,6 +22,7 @@ const app = new Lyn({
 | `database` | Connects Postgres, with a typed `db` in every handler | [Database](../integrations/database.md) |
 | `start.hideLynLogo` | Hides the logo printed by `listen()` (default `false`) | |
 | `server.hostname` | Interface `listen()` binds. Default `127.0.0.1` (this machine only). `"0.0.0.0"` opens it to the network | [Routing](../essentials/routing.md#starting-and-stopping) |
+| `server.allowedHosts` | Hostnames accepted in `Host` while serving. Default: loopback names | [Routing](../essentials/routing.md#starting-and-stopping) |
 
 Logging is configured with environment variables: see [Logging](logging.md).
 

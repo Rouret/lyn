@@ -103,6 +103,11 @@ await app.stop();
   (`127.0.0.1`). To accept them from the network, set
   `server.hostname` to `"0.0.0.0"`. `app.url` stays a loopback URL in
   that case, because `0.0.0.0` is not an address you can request.
+- While the server is running, the `Host` header must be `127.0.0.1`,
+  `localhost`, `::1`, or a name in `server.allowedHosts` (the bind
+  address is added for you, unless it is a wildcard). Anything else is
+  `400 INVALID_HOST`. `handle()` does not check `Host`: you built the
+  request yourself.
 - `stop()` stops the server and closes the database connection. Lyn also
   calls it when the process receives `SIGINT` (Ctrl+C) or `SIGTERM`
   (`docker stop`, Kubernetes), then lets the process exit. If your code

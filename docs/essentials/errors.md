@@ -28,6 +28,7 @@ Every error Lyn sends has the same JSON shape:
 
 | Code | Status | When |
 | --- | --- | --- |
+| `INVALID_HOST` | `400` | `listen()` received a `Host` header that is not allowed |
 | `VALIDATION` | `400` | The body, params or query don't match their schema, or a database query got a missing or malformed value |
 | `NO_BODY` | `400` | A body schema is declared, but no body was sent |
 | `INVALID_JSON` | `400` | The body is not valid JSON |

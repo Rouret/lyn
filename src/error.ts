@@ -62,6 +62,12 @@ export class InvalidJsonError extends LynError {
   }
 }
 
+export class InvalidHostError extends LynError {
+  constructor() {
+    super("INVALID_HOST", HTTP_STATUS.BAD_REQUEST, "This host is not allowed");
+  }
+}
+
 export class NotFoundError extends LynError {
   constructor(method: string, pathname: string) {
     super("NOT_FOUND", HTTP_STATUS.NOT_FOUND, `Route ${method} ${pathname} not found`);

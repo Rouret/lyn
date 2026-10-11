@@ -1,5 +1,6 @@
 import {
   InternalServerError,
+  InvalidHostError,
   isLynError,
   LynError,
   MethodNotAllowedError,
@@ -153,6 +154,8 @@ const handleRequest = async (
 
   return handler({ ...appContext, request, set, ...validatedInput });
 };
+
+export const invalidHostResponse = (): Response => handleError(new InvalidHostError());
 
 const handleError = (error: LynError): Response => {
   return Response.json(
