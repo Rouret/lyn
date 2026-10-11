@@ -72,6 +72,14 @@ export type LynConfig<
      * @default 1048576
      */
     maxBodyBytes?: number;
+    /**
+     * Maximum time a request may take, in milliseconds, including reading
+     * the body and running the handler. The response is
+     * `408 REQUEST_TIMEOUT` after that. Work already started in the handler
+     * is not cancelled.
+     * @default 30000
+     */
+    requestTimeoutMs?: number;
   };
 };
 

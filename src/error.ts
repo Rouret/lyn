@@ -56,6 +56,12 @@ export class UnsupportedMediaTypeError extends LynError {
   }
 }
 
+export class RequestTimeoutError extends LynError {
+  constructor() {
+    super("REQUEST_TIMEOUT", HTTP_STATUS.REQUEST_TIMEOUT, "Request timed out");
+  }
+}
+
 export class PayloadTooLargeError extends LynError {
   constructor() {
     super(

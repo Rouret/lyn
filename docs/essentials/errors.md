@@ -33,6 +33,7 @@ Every error Lyn sends has the same JSON shape:
 | `NO_BODY` | `400` | A body schema is declared, but no body was sent |
 | `INVALID_JSON` | `400` | The body is not valid JSON |
 | `PAYLOAD_TOO_LARGE` | `413` | The JSON body is larger than `server.maxBodyBytes` (default 1 MiB) |
+| `REQUEST_TIMEOUT` | `408` | The request took longer than `server.requestTimeoutMs` (default 30 seconds) |
 | `UNSUPPORTED_MEDIA_TYPE` | `415` | A body schema is declared, but the `Content-Type` is not JSON |
 | `NOT_FOUND` | `404` | No route has this path |
 | `METHOD_NOT_ALLOWED` | `405` | The path exists, but not for this method. The `Allow` header lists the valid ones |

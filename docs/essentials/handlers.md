@@ -60,6 +60,10 @@ What the handler returns becomes the response body:
 Returning a `Response` object is not supported: it would be sent as JSON.
 :::
 
+A request has 30 seconds, body included. After that Lyn answers
+`408 REQUEST_TIMEOUT`. Raise it with `server.requestTimeoutMs`. The
+handler keeps running: only the response is stopped.
+
 ## Status and headers
 
 Change the status or add headers with `set`:

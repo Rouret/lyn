@@ -18,7 +18,7 @@ import type { Feature } from "#lyn/features/feature";
 import { resolveMaxBodyBytes } from "#lyn/body";
 import { isRequestHostAllowed, resolveAllowedHosts } from "#lyn/host";
 import { internalLogger, logger } from "#lyn/logger";
-import { handleRouteMatch, invalidHostResponse } from "#lyn/request";
+import { handleRouteMatch, invalidHostResponse, resolveRequestTimeoutMs } from "#lyn/request";
 import { logRequest, resolveRequestId, runWithRequestLog } from "#lyn/request-log";
 import { createRouter } from "#lyn/router";
 import { forgetOnShutdownSignal, stopOnShutdownSignal } from "#lyn/shutdown";
@@ -72,6 +72,7 @@ class Lyn<
   private readonly appContext: Record<string, unknown>;
   private readonly allowedHosts: ReadonlySet<string>;
   private readonly maxBodyBytes: number;
+  private readonly requestTimeoutMs: number;
   public readonly env: LynEnv<TEnvConfig>;
 
   constructor(config: LynConfig<TEnvConfig, TSchema> = {}) {
@@ -94,6 +95,7 @@ class Lyn<
       this.config.server?.allowedHosts
     );
     this.maxBodyBytes = resolveMaxBodyBytes(this.config.server?.maxBodyBytes);
+    this.requestTimeoutMs = resolveRequestTimeoutMs(this.config.server?.requestTimeoutMs);
 
     internalLogger.info("All environment variables are valid");
 
@@ -218,6 +220,7 @@ class Lyn<
             appContext: this.appContext,
             mapError: this.mapError,
             maxBodyBytes: this.maxBodyBytes,
+            requestTimeoutMs: this.requestTimeoutMs,
           })
         )
       : invalidHostResponse();

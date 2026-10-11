@@ -186,3 +186,26 @@ describe("Content type set by the handler", () => {
     expect(await response.json()).toEqual({ title: "Conflict" });
   });
 });
+
+describe("request timeout", () => {
+  it("returns 408 REQUEST_TIMEOUT when the handler outlives the limit", async () => {
+    const app = new Lyn({
+      ...TEST_LYN_CONFIG,
+      server: { requestTimeoutMs: 20 },
+    }).get("/", () => Bun.sleep(200).then(() => "ok"));
+
+    const response = await app.handle(new Request("http://lyn.test/"));
+
+    expect(response.status).toBe(408);
+    expect(await response.json()).toEqual({
+      code: "REQUEST_TIMEOUT",
+      message: "Request timed out",
+    });
+  });
+
+  it("rejects a non-positive timeout", () => {
+    expect(
+      () => new Lyn({ ...TEST_LYN_CONFIG, server: { requestTimeoutMs: 0 } })
+    ).toThrow("server.requestTimeoutMs must be a positive integer");
+  });
+});

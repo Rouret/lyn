@@ -180,7 +180,7 @@ handleRequestLifecycle
        body   → readJsonBody: size? JSON content type? JSON.parse in try, safeParse  → PAYLOAD_TOO_LARGE / NO_BODY / UNSUPPORTED_MEDIA_TYPE / INVALID_JSON / VALIDATION
        params → parseParams: coerce per field, safeParse                       → VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
-       return handler(context)   (awaited, so async handlers work)
+       return handler(context)   (awaited, so async handlers work; 408 after server.requestTimeoutMs, default 30s)
   └─ handleResponse: undefined → empty body, no Content-Type; string → text/plain; charset=utf-8; anything else → Response.json
   └─ catch: isLynError → handleError(error) ; else log + InternalServerError (500, no details leaked)
 

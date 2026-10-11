@@ -5,6 +5,7 @@ import {
   LynError,
   MethodNotAllowedError,
   NotFoundError,
+  RequestTimeoutError,
   ValidationError,
 } from "#lyn/error";
 import { HTTP_STATUS } from "#lyn/http-status";
@@ -35,6 +36,7 @@ type RequestDispatch = {
   appContext: Record<string, unknown>;
   mapError: (error: unknown) => LynError | undefined;
   maxBodyBytes: number;
+  requestTimeoutMs: number;
 };
 
 export const handleRouteMatch = ({
@@ -45,6 +47,7 @@ export const handleRouteMatch = ({
   appContext,
   mapError,
   maxBodyBytes,
+  requestTimeoutMs,
 }: RequestDispatch): Promise<Response> | Response => {
   switch (match.status) {
     case "found":
@@ -53,6 +56,7 @@ export const handleRouteMatch = ({
         appContext,
         mapError,
         maxBodyBytes,
+        requestTimeoutMs,
       });
     case "method_not_allowed":
       if (request.method === "OPTIONS") {
@@ -78,7 +82,11 @@ const handleRequestLifecycle = async (
     appContext,
     mapError,
     maxBodyBytes,
-  }: Pick<RequestDispatch, "log" | "appContext" | "mapError" | "maxBodyBytes">
+    requestTimeoutMs,
+  }: Pick<
+    RequestDispatch,
+    "log" | "appContext" | "mapError" | "maxBodyBytes" | "requestTimeoutMs"
+  >
 ): Promise<Response> => {
   try {
     const set: SetDefinition = {
@@ -86,11 +94,14 @@ const handleRequestLifecycle = async (
       status: getDefaultStatusFromMethod(route.method),
     };
 
-    const responseBody = await handleRequest(request, params, route, {
-      set,
-      appContext,
-      maxBodyBytes,
-    });
+    const responseBody = await withTimeout(
+      handleRequest(request, params, route, {
+        set,
+        appContext,
+        maxBodyBytes,
+      }),
+      requestTimeoutMs
+    );
 
     return handleResponse(responseBody, set.headers, set.status);
   } catch (error: unknown) {
@@ -127,6 +138,27 @@ const handleResponse = (
 
   setDefaultContentType(headers, "application/json");
   return Response.json(bodyResponse, { headers, status });
+};
+
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+export const resolveRequestTimeoutMs = (value: number | undefined): number => {
+  if (value === undefined) return DEFAULT_REQUEST_TIMEOUT_MS;
+  if (!Number.isInteger(value) || value <= 0)
+    throw new Error("server.requestTimeoutMs must be a positive integer");
+  return value;
+};
+
+const withTimeout = async <T>(work: Promise<T>, timeoutMs: number): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new RequestTimeoutError()), timeoutMs);
+  });
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 const dataOrThrow = <T>(result: ZodSafeParseResult<T>): T => {
