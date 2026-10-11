@@ -7,6 +7,8 @@ const BOOLEAN_VALUES: Record<string, boolean> = {
   "0": false,
 };
 
+const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/;
+
 const unwrapOptional = (field: ZodType): ZodType =>
   field instanceof ZodOptional ? (field.unwrap() as ZodType) : field;
 
@@ -14,7 +16,8 @@ export const coerceValue = (field: ZodType, rawValue: string): unknown => {
   const fieldType = unwrapOptional(field);
 
   if (fieldType instanceof ZodNumber) {
-    return rawValue.trim() === "" ? rawValue : Number(rawValue);
+    if (!DECIMAL_NUMBER.test(rawValue)) return rawValue;
+    return Number(rawValue);
   }
   if (fieldType instanceof ZodBoolean) {
     return BOOLEAN_VALUES[rawValue] ?? rawValue;

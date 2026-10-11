@@ -88,7 +88,7 @@ src/
     cors.ts      CorsConfig, corsFeature (onResponse: actual + preflight headers)
     database.ts  DatabaseConfig, databaseFeature (DATABASE_URL env, Bun SQL, snake_case, ping / close, Postgres SQLSTATE → 409/400), DatabaseContext, DatabaseOf
   router.ts    Segment trie: path validation, matching, params extraction
-  coerce.ts    coerceValue: string → number/boolean according to the zod field (unwraps .optional())
+  coerce.ts    coerceValue: plain decimal or boolean according to the zod field (unwraps .optional(); hex and exponents stay strings)
   query.ts     parseQuery: reads schema keys from URLSearchParams, coerceValue, safeParse
   params.ts    parseParams: coerceValue on router params, safeParse
   body.ts      readJsonBody: size cap (413, default 1 MiB, server.maxBodyBytes), NO_BODY, JSON content type (415), JSON.parse inside try (INVALID_JSON)

@@ -116,7 +116,7 @@ Values are converted to the field's type before validation:
 | Field | Accepted values |
 | --- | --- |
 | `z.string()` | anything, kept as is |
-| `z.number()` | anything `Number()` understands; an empty value fails |
+| `z.number()` | a plain decimal, such as `42`, `-1.5` or `.5`. Hex (`0x10`), exponents (`1e2`) and blanks fail |
 | `z.boolean()` | `true` / `1` and `false` / `0`; anything else fails |
 
 A request gets `400 VALIDATION` when a required key is missing, a value

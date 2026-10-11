@@ -259,6 +259,18 @@ describe("Params validation", () => {
     });
   });
 
+  it.each(["0x10", "1e2"])(
+    "rejects a numeric param that is not a plain decimal (%s)",
+    async (userId) => {
+      const response = await createTestClient(postApp()).get(
+        `/users/${userId}/posts/hello`
+      );
+
+      expect(response.status).toBe(400);
+      expect(await issuePaths(response)).toEqual(["userId"]);
+    }
+  );
+
   it("rejects a non-numeric value for a numeric param", async () => {
     const response = await createTestClient(postApp()).get(
       "/users/abc/posts/hello"
@@ -362,6 +374,18 @@ describe("Query validation", () => {
     expect(response.status).toBe(400);
     expect(await issuePaths(response)).toEqual(["age"]);
   });
+
+  it.each(["1e2", "0x10", " 3"])(
+    "rejects a query number that is not a plain decimal (%s)",
+    async (age) => {
+      const response = await createTestClient(searchApp()).get(
+        `/search?name=Jo&age=${encodeURIComponent(age)}&isAdmin=true`
+      );
+
+      expect(response.status).toBe(400);
+      expect(await issuePaths(response)).toEqual(["age"]);
+    }
+  );
 
   it("rejects values that are not of the declared type", async () => {
     const response = await createTestClient(searchApp()).get(
