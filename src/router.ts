@@ -67,20 +67,22 @@ const assertParamsSchemaMatchesPath = (
 const findNode = (
   node: RouteNode,
   segments: string[],
+  index: number,
   paramValues: string[]
 ): RouteNode | null => {
-  const [segment, ...rest] = segments;
+  const segment = segments[index];
   if (segment === undefined) {
     return node.routesByMethod.size > 0 ? node : node.wildcardChild;
   }
 
   const staticChild = node.staticChildren.get(segment);
-  const staticMatch = staticChild && findNode(staticChild, rest, paramValues);
+  const staticMatch =
+    staticChild && findNode(staticChild, segments, index + 1, paramValues);
   if (staticMatch) return staticMatch;
 
   if (node.paramChild) {
     paramValues.push(decodeSegment(segment));
-    const paramMatch = findNode(node.paramChild, rest, paramValues);
+    const paramMatch = findNode(node.paramChild, segments, index + 1, paramValues);
     if (paramMatch) return paramMatch;
     paramValues.pop();
   }
@@ -88,8 +90,11 @@ const findNode = (
   return node.wildcardChild;
 };
 
+const NO_PARAMS: RouteParams = Object.freeze({});
+
 export const createRouter = () => {
   const root = createNode();
+  const staticNodes = new Map<string, RouteNode>();
 
   const add = (route: Route<any, any, any>) => {
     assertValidPath(route.path);
@@ -118,11 +123,15 @@ export const createRouter = () => {
       );
 
     node.routesByMethod.set(route.method, { route, paramNames });
+    if (paramNames.length === 0 && !route.path.includes("*"))
+      staticNodes.set(route.path, node);
   };
 
   const match = (method: string, pathname: string): RouteMatch => {
     const paramValues: string[] = [];
-    const node = findNode(root, splitPath(pathname), paramValues);
+    const node =
+      staticNodes.get(pathname) ??
+      findNode(root, splitPath(pathname), 0, paramValues);
     if (!node) return { status: "not_found" };
 
     const registered = node.routesByMethod.get(method as LynSupportedMethods);
@@ -132,9 +141,12 @@ export const createRouter = () => {
         allowedMethods: [...node.routesByMethod.keys()],
       };
 
-    const params = Object.fromEntries(
-      registered.paramNames.map((name, index) => [name, paramValues[index]!])
-    );
+    const params =
+      registered.paramNames.length === 0
+        ? NO_PARAMS
+        : Object.fromEntries(
+            registered.paramNames.map((name, index) => [name, paramValues[index]!])
+          );
     return { status: "found", route: registered.route, params };
   };
 

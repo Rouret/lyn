@@ -61,6 +61,38 @@ describe("router", () => {
     expect(router.match("GET", "/users/42")).toMatchObject({ route: byId });
   });
 
+  it("answers an exact static path like the tree walk would", () => {
+    const me = route("GET", "/users/me");
+    const create = route("POST", "/users/:id");
+    const router = routerWith(create, me);
+
+    expect(router.match("GET", "/users/me")).toEqual({
+      status: "found",
+      route: me,
+      params: {},
+    });
+    expect(router.match("POST", "/users/me")).toEqual({
+      status: "method_not_allowed",
+      allowedMethods: ["GET"],
+    });
+    expect(router.match("POST", "/users/42")).toMatchObject({ route: create });
+  });
+
+  it("matches a static path written with extra slashes", () => {
+    const me = route("GET", "/users/me");
+    const router = routerWith(me);
+
+    expect(router.match("GET", "//users//me/")).toMatchObject({ route: me });
+  });
+
+  it("matches a route registered with a trailing slash by its plain path", () => {
+    const users = route("GET", "/users/");
+    const router = routerWith(users);
+
+    expect(router.match("GET", "/users")).toMatchObject({ route: users });
+    expect(router.match("GET", "/users/")).toMatchObject({ route: users });
+  });
+
   it("backtracks to a param branch when the static branch dead-ends", () => {
     const staticBranch = route("GET", "/users/me/settings");
     const paramBranch = route("GET", "/users/:id/posts");
