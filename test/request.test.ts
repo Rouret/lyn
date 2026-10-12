@@ -208,6 +208,47 @@ describe("request timeout", () => {
     });
   });
 
+  it("aborts ctx.signal when the request times out", async () => {
+    let signal: AbortSignal | undefined;
+    const app = new Lyn({
+      ...TEST_LYN_CONFIG,
+      server: { requestTimeoutMs: 20 },
+    }).get("/", (context) => {
+      signal = context.signal;
+      return Bun.sleep(200).then(() => "ok");
+    });
+
+    await app.handle(new Request("http://lyn.test/"));
+
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it("aborts ctx.signal when the client goes away", async () => {
+    const client = new AbortController();
+    let signal: AbortSignal | undefined;
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", async (context) => {
+      signal = context.signal;
+      client.abort();
+      return "ok";
+    });
+
+    await app.handle(new Request("http://lyn.test/", { signal: client.signal }));
+
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it("leaves ctx.signal alone when the handler finishes in time", async () => {
+    let signal: AbortSignal | undefined;
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", (context) => {
+      signal = context.signal;
+      return "ok";
+    });
+
+    await app.handle(new Request("http://lyn.test/"));
+
+    expect(signal?.aborted).toBe(false);
+  });
+
   it("rejects a non-positive timeout", () => {
     expect(
       () => new Lyn({ ...TEST_LYN_CONFIG, server: { requestTimeoutMs: 0 } })

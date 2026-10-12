@@ -94,13 +94,17 @@ const handleRequestLifecycle = async (
       status: getDefaultStatusFromMethod(route.method),
     };
 
+    const timeout = new AbortController();
+    const signal = AbortSignal.any([request.signal, timeout.signal]);
     const responseBody = await withTimeout(
       handleRequest(request, params, route, {
         set,
+        signal,
         appContext,
         maxBodyBytes,
       }),
-      requestTimeoutMs
+      requestTimeoutMs,
+      timeout
     );
 
     return handleResponse(responseBody, set.headers, set.status);
@@ -149,10 +153,18 @@ export const resolveRequestTimeoutMs = (value: number | undefined): number => {
   return value;
 };
 
-const withTimeout = async <T>(work: Promise<T>, timeoutMs: number): Promise<T> => {
+const withTimeout = async <T>(
+  work: Promise<T>,
+  timeoutMs: number,
+  controller: AbortController
+): Promise<T> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new RequestTimeoutError()), timeoutMs);
+    timer = setTimeout(() => {
+      const error = new RequestTimeoutError();
+      controller.abort(error);
+      reject(error);
+    }, timeoutMs);
   });
   try {
     return await Promise.race([work, timeout]);
@@ -172,9 +184,15 @@ const handleRequest = async (
   { handler, validation }: AnyRoute,
   {
     set,
+    signal,
     appContext,
     maxBodyBytes,
-  }: { set: SetDefinition; appContext: Record<string, unknown>; maxBodyBytes: number }
+  }: {
+    set: SetDefinition;
+    signal: AbortSignal;
+    appContext: Record<string, unknown>;
+    maxBodyBytes: number;
+  }
 ): Promise<RouteHandlerBodyResponse> => {
   const validatedInput: { body?: unknown; params?: unknown; query?: unknown } =
     {};
@@ -197,7 +215,7 @@ const handleRequest = async (
     );
   }
 
-  return handler({ ...appContext, request, set, ...validatedInput });
+  return handler({ ...appContext, request, set, signal, ...validatedInput });
 };
 
 export const invalidHostResponse = (): Response => handleError(new InvalidHostError());

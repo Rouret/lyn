@@ -181,7 +181,8 @@ handleRequestLifecycle
        body   → readJsonBody: size? JSON content type? JSON.parse in try, safeParse  → PAYLOAD_TOO_LARGE / NO_BODY / UNSUPPORTED_MEDIA_TYPE / INVALID_JSON / VALIDATION
        params → parseParams: coerce per field, safeParse                       → VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
-       return handler(context)   (awaited, so async handlers work; 408 after server.requestTimeoutMs, default 30s)
+       return handler(context)   (awaited, so async handlers work; 408 after server.requestTimeoutMs, default 30s,
+                                  which also aborts ctx.signal = AbortSignal.any([request.signal, timeout]))
   └─ handleResponse: undefined → empty body, no Content-Type; string → text/plain; charset=utf-8; anything else → Response.json
   └─ catch: isLynError → handleError(error) ; else log + InternalServerError (500, no details leaked)
 
@@ -230,6 +231,10 @@ Users only see `new Lyn({ … })` options.
   Never wrap it. Drizzle errors' `message` contains the SQL and parameters:
   never forward it to clients.
 - Drizzle is imported statically (~10 ms, measured): no lazy loading.
+- `statementTimeoutMs` (default `server.requestTimeoutMs`, `0` = off) →
+  `connection: { statement_timeout }` on the pool, so no query outlives
+  its request. `applyMigrations` sets it to 0 on its reserved connection
+  and resets it before releasing.
 - `pool` → `new SQL(url, { ...DEFAULT_POOL, ...pool })`; Lyn's defaults
   (max 10, idleTimeout 30 s, connectionTimeout 10 s) are explicit so the
   docs don't depend on Bun's.
@@ -262,7 +267,7 @@ Refused origins get no CORS header but the request is still processed.
 
 ### Typing
 
-`Context<TBody, TParams, TQuery, TAppContext>` = `BodyContext & ParamsContext & QueryContext & TAppContext & { request, set }`.
+`Context<TBody, TParams, TQuery, TAppContext>` = `BodyContext & ParamsContext & QueryContext & TAppContext & { request, set, signal }`.
 Generics default to `undefined`, so `ctx.body` only exists when a body schema
 is passed. `Lyn<TEnvConfig, TSchema>`: `TSchema` is inferred from
 `database.schema` (default `undefined`); route methods pass

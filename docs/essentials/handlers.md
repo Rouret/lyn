@@ -14,6 +14,7 @@ A handler receives one context object and returns the response body.
 | --- | --- | --- |
 | `request` | the standard `Request` | always |
 | `set` | `{ status: number; headers: Headers }` | always |
+| `signal` | an `AbortSignal`, aborted on timeout or when the client disconnects | always |
 | `body` | inferred from the body schema | when a [body schema](validation.md#body) is given |
 | `params` | inferred from the params schema | when a [params schema](validation.md#params) is given |
 | `query` | inferred from the query schema | when a [query schema](validation.md#query) is given |
@@ -61,8 +62,22 @@ Returning a `Response` object is not supported: it would be sent as JSON.
 :::
 
 A request has 30 seconds, body included. After that Lyn answers
-`408 REQUEST_TIMEOUT`. Raise it with `server.requestTimeoutMs`. The
-handler keeps running: only the response is stopped.
+`408 REQUEST_TIMEOUT`. Raise it with `server.requestTimeoutMs`.
+
+Lyn can't stop your code, but it tells it to stop: `signal` is aborted at
+the timeout, or as soon as the client disconnects. Pass it to `fetch`, or
+check `signal.aborted` between long steps:
+
+```ts
+.get("/weather", async ({ signal }) => {
+  const response = await fetch("https://api.example.com/weather", { signal });
+  return response.json();
+})
+```
+
+With a [database](../integrations/database.md#statement-timeout),
+Postgres also cancels any query that runs longer than the request
+timeout.
 
 ## Status and headers
 

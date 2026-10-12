@@ -204,6 +204,25 @@ new Lyn({
 Keep `max` × your number of instances below the `max_connections` of your
 Postgres server.
 
+## Statement timeout
+
+Postgres cancels any query that runs longer than the request timeout
+(`server.requestTimeoutMs`, 30 seconds by default). A slow query can't
+keep a connection busy after its client got a `408`, so a burst of slow
+requests can't fill the pool. Change it with `statementTimeoutMs`:
+
+```ts
+new Lyn({
+  database: {
+    schema,
+    statementTimeoutMs: 5000, // milliseconds, 0 disables it
+  },
+});
+```
+
+It applies to `app.db` too, so raise it, or set `0`, for long scripts.
+Migrations are never cancelled.
+
 ## Query logs
 
 Set `logQueries` to log every SQL query at `info` level, with the

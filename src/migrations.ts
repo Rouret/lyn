@@ -17,6 +17,7 @@ export const assertMigrationsExist = (paths: DatabasePaths) => {
 // Migrating on the connection that holds the lock keeps working with a pool of one.
 export const applyMigrations = async (client: SQL, migrationsFolder: string) => {
   const connection = await client.reserve();
+  await connection`set statement_timeout = 0`;
   await connection`select pg_advisory_lock(hashtext('lyn_migrations'))`;
   try {
     await migrate(drizzle({ client: connection, casing: "snake_case" }), {
@@ -24,6 +25,7 @@ export const applyMigrations = async (client: SQL, migrationsFolder: string) => 
     });
   } finally {
     await connection`select pg_advisory_unlock(hashtext('lyn_migrations'))`;
+    await connection`reset statement_timeout`;
     connection.release();
   }
 };

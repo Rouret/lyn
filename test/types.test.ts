@@ -13,6 +13,7 @@ it("only exposes the context fields that have a schema", () => {
       context.params;
       // @ts-expect-error body is absent on GET
       context.body;
+      context.signal satisfies AbortSignal;
       return "ok";
     })
     .post(

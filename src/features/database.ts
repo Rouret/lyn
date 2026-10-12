@@ -4,6 +4,7 @@ import { internalLogger } from "#lyn/logger";
 import { applyMigrations, assertMigrationsExist } from "#lyn/migrations";
 import { loadDatabasePaths } from "#lyn/project-config";
 import { currentRequestLog } from "#lyn/request-log";
+import { resolveRequestTimeoutMs } from "#lyn/request";
 import { SQL } from "bun";
 import { sql, type Logger } from "drizzle-orm";
 import { drizzle, type BunSQLDatabase } from "drizzle-orm/bun-sql";
@@ -37,6 +38,12 @@ export type DatabaseConfig<TSchema, TEnv> = {
    * `lyn db migrate` instead when you deploy several instances.
    */
   migrateOnStart?: boolean;
+  /**
+   * Postgres cancels a query that runs longer, in milliseconds. Defaults to
+   * `server.requestTimeoutMs`, so no query outlives its request. `0`
+   * disables it. Migrations are never cancelled.
+   */
+  statementTimeoutMs?: number;
 };
 
 export type DatabasePoolConfig = {
@@ -126,17 +133,32 @@ const passJsonValuesToBunSql = (schema: DatabaseSchema) => {
   visit(schema);
 };
 
+const resolveStatementTimeoutMs = (
+  value: number | undefined,
+  requestTimeoutMs: number | undefined
+): number => {
+  if (value === undefined) return resolveRequestTimeoutMs(requestTimeoutMs);
+  if (!Number.isInteger(value) || value < 0)
+    throw new LynDatabaseError("database.statementTimeoutMs must be a non-negative integer");
+  return value;
+};
+
 const createDatabase = (
   {
     schema,
     pool,
     logQueries,
   }: Pick<DatabaseConfig<DatabaseSchema, never>, "schema" | "pool" | "logQueries">,
-  url: string
+  url: string,
+  statementTimeoutMs: number
 ): Database => {
   passJsonValuesToBunSql(schema);
   return drizzle({
-    client: new SQL(url, { ...DEFAULT_POOL, ...pool }),
+    client: new SQL(url, {
+      ...DEFAULT_POOL,
+      ...pool,
+      connection: { statement_timeout: statementTimeoutMs },
+    }),
     schema,
     casing: "snake_case",
     logger: logQueries ? queryLogger : false,
@@ -219,13 +241,21 @@ const createDatabaseFeature = (
   };
 };
 
-export const databaseFeature: FeatureDefinition = ({ database }) => {
+export const databaseFeature: FeatureDefinition = ({ database, server }) => {
   if (!database) return undefined;
+  const statementTimeoutMs = resolveStatementTimeoutMs(
+    database.statementTimeoutMs,
+    server?.requestTimeoutMs
+  );
   return {
     env: database.url === undefined ? DATABASE_URL_ENV_CONFIG : undefined,
     create: ({ app, own }) =>
       createDatabaseFeature(
-        createDatabase(database, resolveDatabaseUrl(database, app, own.databaseUrl)),
+        createDatabase(
+          database,
+          resolveDatabaseUrl(database, app, own.databaseUrl),
+          statementTimeoutMs
+        ),
         database
       ),
   };

@@ -75,8 +75,8 @@ export type LynConfig<
     /**
      * Maximum time a request may take, in milliseconds, including reading
      * the body and running the handler. The response is
-     * `408 REQUEST_TIMEOUT` after that. Work already started in the handler
-     * is not cancelled.
+     * `408 REQUEST_TIMEOUT` after that, and `ctx.signal` is aborted so the
+     * handler can stop its work.
      * @default 30000
      */
     requestTimeoutMs?: number;
@@ -138,6 +138,11 @@ export type Context<
   TAppContext & {
     request: Request;
     set: SetDefinition;
+    /**
+     * Aborted when the request times out or the client disconnects. Pass it
+     * to `fetch` or check `signal.aborted` to stop work nobody will receive.
+     */
+    signal: AbortSignal;
   };
 
 export type Validation<

@@ -10,11 +10,66 @@ import * as schema from "test/fixtures/schema";
 const TEST_DATABASE_URL = Bun.env.TEST_DATABASE_URL;
 const REPO_ROOT = resolve(import.meta.dir, "..");
 
-const createApp = (options: { pool?: { max: number }; migrateOnStart?: boolean } = {}) =>
+type DatabaseOptions = {
+  pool?: { max: number };
+  migrateOnStart?: boolean;
+  statementTimeoutMs?: number;
+};
+
+const createApp = (options: DatabaseOptions = {}, requestTimeoutMs?: number) =>
   new Lyn({
     ...TEST_LYN_CONFIG,
+    server: { requestTimeoutMs },
     database: { schema, url: TEST_DATABASE_URL ?? "postgres://lyn:lyn@127.0.0.1:1/lyn", ...options },
   });
+
+const showStatementTimeout = async (app: ReturnType<typeof createApp>) => {
+  const [row] = await app.db.execute<{ statement_timeout: string }>(
+    sql`show statement_timeout`
+  );
+  return row?.statement_timeout;
+};
+
+describe("statementTimeoutMs", () => {
+  it.each([-1, 1.5])("rejects %p", (statementTimeoutMs) => {
+    expect(() => createApp({ statementTimeoutMs })).toThrow(
+      "database.statementTimeoutMs must be a non-negative integer"
+    );
+  });
+});
+
+describe.skipIf(!TEST_DATABASE_URL)("statementTimeoutMs (Postgres)", () => {
+  it("defaults to the request timeout", async () => {
+    const app = createApp({}, 1500);
+
+    const timeout = await showStatementTimeout(app);
+    await app.stop();
+
+    expect(timeout).toBe("1500ms");
+  });
+
+  it("uses statementTimeoutMs, and 0 disables it", async () => {
+    const custom = createApp({ statementTimeoutMs: 250 });
+    const disabled = createApp({ statementTimeoutMs: 0 });
+
+    const timeouts = [await showStatementTimeout(custom), await showStatementTimeout(disabled)];
+    await Promise.all([custom.stop(), disabled.stop()]);
+
+    expect(timeouts).toEqual(["250ms", "0"]);
+  });
+
+  it("cancels a query that runs longer", async () => {
+    const app = createApp({ statementTimeoutMs: 50 });
+
+    const error = await app.db.execute(sql`select pg_sleep(1)`).then(
+      () => undefined,
+      (failure: Error) => failure
+    );
+    await app.stop();
+
+    expect((error?.cause as { errno?: string } | undefined)?.errno).toBe("57014");
+  });
+});
 
 describe.skipIf(!TEST_DATABASE_URL)("database pool (Postgres)", () => {
   it("never opens more than pool.max connections", async () => {
@@ -126,6 +181,22 @@ describe.skipIf(!TEST_DATABASE_URL)("migrateOnStart (Postgres)", () => {
     await Promise.all(apps.map((app) => app.stop()));
 
     expect(applied).toHaveLength(1);
+  });
+
+  it("lets migrations outlive the statement timeout, then restores it", async () => {
+    await copyFixtureMigrations();
+    const migration = join(project, "drizzle/0000_init.sql");
+    await Bun.write(
+      migration,
+      `${await Bun.file(migration).text()}\n--> statement-breakpoint\nSELECT pg_sleep(0.3);`
+    );
+    const app = createApp({ migrateOnStart: true, statementTimeoutMs: 100, pool: { max: 1 } });
+
+    await app.listen();
+    const timeout = await showStatementTimeout(app);
+    await app.stop();
+
+    expect(timeout).toBe("100ms");
   });
 
   it("reads the migrations folder from lyn.config.ts", async () => {

@@ -29,7 +29,7 @@ Creates an app. Reads and checks the environment variables right away.
 | --- | --- | --- |
 | `env` | `Record<string, { name: string; type: "string" \| "number" \| "boolean" }>` | [Environment variables](../configuration/environment-variables.md) |
 | `cors` | `{ origin, credentials?, allowedHeaders?, exposedHeaders?, maxAge? }` | [CORS](../configuration/cors.md) |
-| `database` | `{ schema, url?, pool?, logQueries?, migrateOnStart? }` | [Database](../integrations/database.md) |
+| `database` | `{ schema, url?, pool?, logQueries?, migrateOnStart?, statementTimeoutMs? }` | [Database](../integrations/database.md) |
 | `start.hideLynLogo` | `boolean` | [Configuration](../configuration/overview.md) |
 | `server.hostname` | `string`, default `"127.0.0.1"` | [Routing](../essentials/routing.md#starting-and-stopping) |
 | `server.allowedHosts` | `string[]`, default loopback names | [Routing](../essentials/routing.md#starting-and-stopping) |
@@ -56,6 +56,7 @@ See [Routing](../essentials/routing.md) and [Validation](../essentials/validatio
 | `request` | The standard `Request` |
 | `set.status` | Response status, defaults to the method's |
 | `set.headers` | Response `Headers` |
+| `signal` | `AbortSignal` aborted on timeout or client disconnect |
 | `body`, `params`, `query` | Validated inputs, when a schema is given |
 | `db` | Typed Drizzle instance, when a database is configured |
 
