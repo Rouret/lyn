@@ -105,7 +105,8 @@ await app.stop();
   that case, because `0.0.0.0` is not an address you can request.
 - While the server is running, the `Host` header must be `127.0.0.1`,
   `localhost`, `::1`, or a name in `server.allowedHosts` (the bind
-  address is added for you, unless it is a wildcard). Anything else is
+  address is added for you, unless it is a wildcard). Only the name is
+  checked, with or without a port. Anything else is
   `400 INVALID_HOST`. `handle()` does not check `Host`: you built the
   request yourself.
 - `stop()` stops the server and closes the database connection. Lyn also

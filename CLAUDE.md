@@ -139,7 +139,9 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   use it. While a server is running, a `Host` header outside
   `server.allowedHosts` (default `127.0.0.1`, `localhost`, `::1`, plus the
   bind address when it is not a wildcard) is `400 INVALID_HOST` before
-  routing. `handle()` without `listen()` does not check `Host`.
+  routing. Only the name is compared: the port is ignored, since load
+  testers and proxies send `Host` without it. `handle()` without
+  `listen()` does not check `Host`.
   Only unexpected errors are logged inside the lifecycle (name, stack
   frames, and SQLSTATE — never the message, which can hold the SQL and
   its parameter values); LynErrors are covered by the request line.

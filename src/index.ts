@@ -236,10 +236,9 @@ class Lyn<
   };
 
   private isHostAllowed(request: Request) {
-    const servedPort = this.server?.port;
     return (
-      servedPort === undefined ||
-      isRequestHostAllowed(request, this.allowedHosts, servedPort)
+      this.server === null ||
+      isRequestHostAllowed(request, this.allowedHosts)
     );
   }
 
