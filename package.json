@@ -55,6 +55,7 @@
     "prepack": "bun run build",
     "check:package": "bun run scripts/check-package.ts",
     "pack:example": "bun run scripts/pack-example.ts",
+    "release": "bun run scripts/release.ts",
     "check:example": "bun run pack:example && bun run --cwd examples/feedback-board typecheck && bun run --cwd examples/feedback-board test",
     "deadcode": "knip",
     "test": "NODE_ENV=lyn-test bun test",

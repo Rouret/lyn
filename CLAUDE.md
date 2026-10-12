@@ -34,8 +34,8 @@ Bun**. It provides, on top of `Bun.serve`:
 It targets POCs, solopreneurs and agencies: users should write as little
 configuration as possible, and every public API must be precisely typed.
 Auth (better-auth on top of the database) is planned but **not wired in
-yet**. The package (`@rouret/lyn`, `version 1.0.0`) is **not published**
-yet; `bun run build` writes it to `dist/`.
+yet**. The package (`@rouret/lyn`) is published on npm; `bun run build` writes
+it to `dist/`, `bun run release` publishes a new version.
 
 ## Commands
 
@@ -53,6 +53,7 @@ Always use Bun. Never use node, npm, npx, pnpm, yarn, vite, jest or ts-node.
 | Build to `dist/`           | `bun run build`                          |
 | Check the packed package   | `bun run check:package` (pack → publint, attw, consumer project) |
 | Check the build in the example | `bun run check:example` (pack:example → example typecheck + tests on its Postgres) |
+| Release (maintainer only)  | `bun run release <patch\|minor\|major\|x.y.z> [--dry-run]` |
 | Docs site (hot)            | `bun run docs:dev`                       |
 | Docs build (dead links)    | `bun run docs:build`                     |
 | Type-check                 | `bunx tsc --noEmit`                      |
@@ -110,6 +111,8 @@ testing/       local.ts (dev sandbox) and utilsTest.ts (createTestClient, built 
 scripts/build.ts  `bun run build`: Bun.build + tsc (tsconfig.build.json) → dist/
 scripts/check-package.ts  `bun run check:package`: consumer smoke test of the packed tarball (CI job `package`)
 scripts/pack-example.ts  `bun run pack:example`: packs Lyn into examples/feedback-board/lyn.tgz (gitignored) and reinstalls it there
+scripts/release.ts  `bun run release`: checks → version commit + tag → push → npm publish → GitHub release with the tarball
+scripts/release-notes.ts  release notes grouped from the Conventional Commits since the previous `v*` tag
 docs/          user documentation (VitePress site, one folder per sidebar category)
 CONTRIBUTING.md  maintainer workflow and doc-writing rules
 ```
@@ -327,8 +330,19 @@ change ships with `@ts-expect-error` / `satisfies` cases in
   JSON patch on the consumer's drizzle-orm (one instance), `lyn --help`
   and `lyn db generate` with a `lyn.config.ts`. Run it after any change to
   the build, `package.json` or an entry point.
-- No release automation: only the maintainer publishes, by hand. Never
-  publish or add a release workflow without being asked.
+- Releases are local, run by the maintainer with `bun run release <patch|minor|major|x.y.z>`
+  (`--dry-run` stops after `bun publish --dry-run` and undoes the version
+  commit and tag). It requires a clean,
+  synced `main`, `bun pm whoami` and `gh auth status`; runs `test:db`,
+  `tsc`, `deadcode`, `check:package` and `check:example` (the example's
+  lockfile is restored even when they fail); then `bun pm version` (commit
+  `chore: release x.y.z` + tag `vx.y.z`), refuses a version already on
+  npm, packs once, writes the notes (`scripts/release-notes.ts`), pushes
+  commit and tag atomically, publishes that tarball and attaches the same
+  file to the GitHub release. A prerelease version goes to the `next`
+  dist-tag and a GitHub pre-release. Any failure before the push undoes the
+  version commit and tag; after it, the script prints the commands left to
+  run. Never run it, publish, or add a release workflow without being asked.
 
 ### CLI (`src/cli/`)
 
@@ -532,6 +546,6 @@ the bad ones, and check that the good ones are still true.
 ## Roadmap (from README)
 
 Done: routes, lifecycle, body/params/query validation, logger, env vars,
-CORS, Postgres with Drizzle, documentation, CLI and migrations.
-Todo: auth (better-auth on top of the database), example
-project, security checklist, publish.
+CORS, Postgres with Drizzle, documentation, CLI and migrations, example
+project, publish to npm.
+Todo: auth (better-auth on top of the database), security checklist.

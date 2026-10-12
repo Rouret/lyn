@@ -105,8 +105,27 @@ every new tarball.
 
 ## Releases
 
-There is no release automation. Only the maintainer publishes, by hand,
-once `bun run check:package` and `bun run check:example` pass.
+Only the maintainer releases, from a clean `main` in sync with `origin`,
+logged in to npm (`bun pm whoami`) and GitHub (`gh auth status`):
+
+```sh
+bun run release patch --dry-run   # everything except push and publish
+bun run release patch             # or minor, major, x.y.z, x.y.z-beta.1
+```
+
+The script runs every check (`test:db`, `tsc`, `deadcode`,
+`check:package`, `check:example`), creates the `chore: release x.y.z`
+commit and the `vx.y.z` tag, checks the version is not on npm yet, packs
+once, then pushes, publishes that tarball and creates the GitHub release
+with the same file attached.
+
+- A version with a `-` (`1.2.0-beta.1`) goes to the `next` dist-tag and
+  is marked as a pre-release on GitHub; the others go to `latest`.
+- Release notes come from the Conventional Commits since the previous
+  `v*` tag: breaking changes, features, fixes and performance. Other types
+  are left out, so write `feat` and `fix` summaries for users.
+- Before the push, any failure removes the version commit and tag. After
+  it, the script prints the commands that finish the release by hand.
 
 ## Commits
 

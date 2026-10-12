@@ -10,6 +10,9 @@
   "tags": [
     "-lintignore"
   ],
+  "ignoreBinaries": [
+    "gh"
+  ],
   "ignoreDependencies": [
     "pino-pretty",
     "drizzle-kit"
