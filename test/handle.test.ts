@@ -235,11 +235,14 @@ describe("listen", () => {
       const allowed = await fetch(app.url, { headers: { host: `app.test:${port}` } });
       const withoutPort = await fetch(app.url, { headers: { host: "app.test" } });
       const otherPort = await fetch(app.url, { headers: { host: "app.test:8080" } });
+      const malformedPort = await fetch(app.url, { headers: { host: "app.test:abc" } });
       const refused = await fetch(app.url, { headers: { host: `evil.example:${port}` } });
 
       expect(await allowed.text()).toBe("ok");
       expect(await withoutPort.text()).toBe("ok");
       expect(await otherPort.text()).toBe("ok");
+      expect(malformedPort.status).toBe(400);
+      expect(await malformedPort.json()).toMatchObject({ code: "INVALID_HOST" });
       expect(refused.status).toBe(400);
       expect(await refused.json()).toEqual({
         code: "INVALID_HOST",

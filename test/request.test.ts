@@ -1,5 +1,6 @@
 import { Lyn } from "#lyn/index";
-import { describe, expect, it } from "bun:test";
+import { pathnameOf } from "#lyn/request";
+import { describe, expect, it, spyOn } from "bun:test";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 import { createTestClient } from "testing/utilsTest";
 
@@ -75,6 +76,52 @@ describe("Handle Error", () => {
       "INTERNAL_SERVER_ERROR"
     );
   });
+});
+
+describe("Unserializable response", () => {
+  it.each([
+    ["a synchronous", () => ({ count: 1n })],
+    ["an async", async () => ({ count: 1n })],
+  ])("returns 500 when %s handler returns a body JSON cannot encode", async (_, handler) => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", handler);
+
+    const response = await app.handle(new Request("http://lyn.test/"));
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Internal Server Error",
+    });
+  });
+});
+
+describe("pathnameOf", () => {
+  it.each([
+    ["http://lyn.test/users", "/users"],
+    ["http://lyn.test/", "/"],
+    ["http://lyn.test", "/"],
+    ["http://lyn.test:3000/users?page=2", "/users"],
+    ["http://lyn.test/users?", "/users"],
+    ["http://lyn.test/users#top", "/users"],
+    ["http://lyn.test/users?next=/a#b?c", "/users"],
+    ["http://lyn.test/users#a?b", "/users"],
+    ["http://user:pass@lyn.test/users", "/users"],
+    ["http://[::1]:3000/users", "/users"],
+    ["http://lyn.test//double//slash", "//double//slash"],
+    ["http://lyn.test/caf%C3%A9/%2F", "/caf%C3%A9/%2F"],
+  ])("reads the path of %s", (url, pathname) => {
+    expect(pathnameOf(url)).toBe(pathname);
+    expect(pathnameOf(url)).toBe(new URL(url).pathname);
+  });
+
+  it.each(["http://lyn.test/a/../b", "http://lyn.test/a/./b", "http://lyn.test/a\\b"])(
+    "matches URL on the normalized url of a Request (%s)",
+    (url) => {
+      const { url: normalized } = new Request(url);
+
+      expect(pathnameOf(normalized)).toBe(new URL(normalized).pathname);
+    }
+  );
 });
 
 describe("Non-Error throws", () => {
@@ -247,6 +294,98 @@ describe("request timeout", () => {
     await app.handle(new Request("http://lyn.test/"));
 
     expect(signal?.aborted).toBe(false);
+  });
+
+  it("aborts ctx.signal read after the request timed out", async () => {
+    let abortedWhenRead: boolean | undefined;
+    const app = new Lyn({
+      ...TEST_LYN_CONFIG,
+      server: { requestTimeoutMs: 20 },
+    }).get("/", async (context) => {
+      await Bun.sleep(60);
+      abortedWhenRead = context.signal.aborted;
+      return "ok";
+    });
+
+    const response = await app.handle(new Request("http://lyn.test/"));
+    await Bun.sleep(80);
+
+    expect(response.status).toBe(408);
+    expect(abortedWhenRead).toBe(true);
+  });
+
+  it("aborts ctx.signal of a synchronous handler when the client is gone", async () => {
+    const client = new AbortController();
+    client.abort();
+    let aborted: boolean | undefined;
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", (context) => {
+      aborted = context.signal.aborted;
+      return "ok";
+    });
+
+    await app.handle(new Request("http://lyn.test/", { signal: client.signal }));
+
+    expect(aborted).toBe(true);
+  });
+
+  it("returns 408 when the body is not received in time", async () => {
+    const app = new Lyn({
+      ...TEST_LYN_CONFIG,
+      server: { requestTimeoutMs: 20 },
+    }).post("/", ({ body }) => body, { body: z.object({ name: z.string() }) });
+
+    const response = await app.handle(
+      new Request("http://lyn.test/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: new ReadableStream({ start() {} }),
+      })
+    );
+
+    expect(response.status).toBe(408);
+  });
+
+  it("arms the timeout only for a handler that returns a promise", async () => {
+    const app = new Lyn({
+      ...TEST_LYN_CONFIG,
+      server: { requestTimeoutMs: 1234 },
+    })
+      .get("/sync", () => "ok")
+      .get("/async", async () => "ok");
+    const setTimeoutSpy = spyOn(globalThis, "setTimeout");
+
+    try {
+      const sync = await app.handle(new Request("http://lyn.test/sync"));
+      const timersForSync = setTimeoutSpy.mock.calls.filter(([, ms]) => ms === 1234);
+      const asynchronous = await app.handle(new Request("http://lyn.test/async"));
+      const timersForAsync = setTimeoutSpy.mock.calls.filter(([, ms]) => ms === 1234);
+
+      expect(await sync.text()).toBe("ok");
+      expect(await asynchronous.text()).toBe("ok");
+      expect(timersForSync).toHaveLength(0);
+      expect(timersForAsync).toHaveLength(1);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
+  it("creates ctx.signal only when the handler reads it", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG)
+      .get("/ignores", () => "ok")
+      .get("/reads", ({ signal }) => String(signal.aborted));
+    const anySpy = spyOn(AbortSignal, "any");
+
+    try {
+      await app.handle(new Request("http://lyn.test/ignores"));
+      const callsWhenIgnored = anySpy.mock.calls.length;
+      const reads = await app.handle(new Request("http://lyn.test/reads"));
+
+      expect(callsWhenIgnored).toBe(0);
+      expect(await reads.text()).toBe("false");
+      expect(anySpy).toHaveBeenCalledTimes(1);
+    } finally {
+      anySpy.mockRestore();
+    }
   });
 
   it("rejects a non-positive timeout", () => {

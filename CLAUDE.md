@@ -129,12 +129,18 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 - `get/post/put/delete(path, handler, validation?)` add a `Route` to the
   router and return `this`. `get` has no body generic.
 - `handle(request)` is the single entry point (`dispatch(request, { ip: undefined })`;
-  `listen()` calls `dispatch` with `server.requestIP`): request id + child logger →
-  parse pathname → Host check → each feature's async `onRequest` (first LynError
+  `listen()` calls `dispatch` with a lazy `ip` getter, so `server.requestIP` only
+  runs when a feature reads it). `dispatch` returns a `Response` directly when
+  nothing awaits (sync handler, no `onRequest`), a promise otherwise; `handle()`
+  always returns a promise. Steps: request id + request logger
+  (`createRequestLogger`: the pino child is created on the first line; `logRequest`
+  returns early when its level is off) →
+  pathname sliced from `request.url` (`pathnameOf`: Bun and `new Request` already
+  normalize it, so it equals `new URL().pathname` and never throws) → Host check →
+  each feature's async `onRequest`, skipped when no feature has one (first LynError
   answers, e.g. 429; a thrown LynError answers too, anything else is
   logged and becomes a 500) → `router.match` → `handleRouteMatch({ …, log, appContext })`
-  → each feature's `onResponse` → `X-Request-Id` header →
-  `X-Content-Type-Options: nosniff` unless already set → one `logRequest`
+  → each feature's `onResponse` → one `logRequest`
   line. Tests and `listen()` both
   use it. While a server is running, a `Host` header outside
   `server.allowedHosts` (default `127.0.0.1`, `localhost`, `::1`, plus the
@@ -174,6 +180,9 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 - `match` walks depth-first with backtracking, priority static > param >
   wildcard. Empty segments are dropped (trailing/double slashes ignored).
   Params are `decodeURIComponent`-ed, raw if decoding fails.
+- A route without params or wildcard is also stored by its exact path; `match`
+  looks the pathname up there first and only walks the trie on a miss (an
+  exact static path always wins the walk anyway).
 - Returns `found` (route + params) | `method_not_allowed` (allowedMethods) | `not_found`.
 
 ### Request lifecycle (`src/request.ts`)
@@ -185,14 +194,21 @@ handleRouteMatch(request, pathname, match)
   └─ found              → handleRequestLifecycle(request, route, params)
 
 handleRequestLifecycle
-  └─ set = { headers: new Headers(), status: default for method }
+  └─ set = { status: default for method, headers: getter creating the Headers on first read (setter too) }
   └─ handleRequest
        body   → readJsonBody: size? JSON content type? JSON.parse in try, safeParse  → PAYLOAD_TOO_LARGE / NO_BODY / UNSUPPORTED_MEDIA_TYPE / INVALID_JSON / VALIDATION
        params → parseParams: coerce per field, safeParse                       → VALIDATION
        query  → parseQuery: coerce per field, safeParse (empty query allowed)  → VALIDATION
-       return handler(context)   (awaited, so async handlers work; 408 after server.requestTimeoutMs, default 30s,
-                                  which also aborts ctx.signal = AbortSignal.any([request.signal, timeout]))
-  └─ handleResponse: undefined → empty body, no Content-Type; string → text/plain; charset=utf-8; anything else → Response.json
+       return handler(context)   (408 after server.requestTimeoutMs, default 30s, which also aborts ctx.signal;
+                                  the timer is armed only when the body is read or the handler returns a promise:
+                                  a timer cannot interrupt synchronous code anyway. ctx.signal is a getter that
+                                  builds AbortSignal.any([request.signal, timeout]) on first read)
+  └─ handleResponse: undefined → empty body, no Content-Type; string → text/plain; charset=utf-8; anything else → Response.json.
+     Headers untouched → a plain init object (Content-Type, X-Request-Id, nosniff): no Headers object at all;
+     touched → defaults added to the handler's Headers.
+     Every Response is created with `X-Request-Id` and `X-Content-Type-Options: nosniff` (unless the handler
+     set its own): handleResponse, handleError(error, requestId), the OPTIONS 204, invalidHostResponse.
+     dispatch never reads response.headers: Bun builds that Headers object lazily (~45 ns).
   └─ catch: isLynError → handleError(error) ; else log + InternalServerError (500, no details leaked)
 
 handleError → Response.json({ code, message, cause }, { status, headers: error.headers })

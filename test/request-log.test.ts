@@ -1,12 +1,18 @@
 import { Lyn } from "#lyn/index";
-import { errorForLog, logRequest, resolveRequestId } from "#lyn/request-log";
-import { describe, expect, it } from "bun:test";
+import {
+  createRequestLogger,
+  errorForLog,
+  logRequest,
+  resolveRequestId,
+} from "#lyn/request-log";
+import { describe, expect, it, spyOn } from "bun:test";
+import pino from "pino";
 import { TEST_LYN_CONFIG } from "test/constantsTest";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-const createFakeLog = () => {
+const createFakeLog = (enabledLevels = ["info", "warn", "error"]) => {
   const calls: { level: string; fields: object; message: string }[] = [];
   const record =
     (level: string) =>
@@ -14,8 +20,19 @@ const createFakeLog = () => {
       calls.push({ level, fields, message });
   return {
     calls,
-    log: { info: record("info"), warn: record("warn"), error: record("error") },
+    log: {
+      info: record("info"),
+      warn: record("warn"),
+      error: record("error"),
+      isLevelEnabled: (level: string) => enabledLevels.includes(level),
+    },
   };
+};
+
+const createCapturedLogger = (level: pino.LevelWithSilent) => {
+  const lines: Record<string, unknown>[] = [];
+  const logger = pino({ level }, { write: (line: string) => lines.push(JSON.parse(line)) });
+  return { lines, logger };
 };
 
 describe("logRequest", () => {
@@ -42,6 +59,59 @@ describe("logRequest", () => {
         message: `GET /users ${status} 3.46ms`,
       },
     ]);
+  });
+});
+
+describe("logRequest level", () => {
+  it.each([
+    [200, ["warn", "error"]],
+    [404, ["error"]],
+    [500, []],
+  ])("skips a %i response when its level is disabled", (status, enabledLevels) => {
+    const { calls, log } = createFakeLog(enabledLevels);
+
+    logRequest(log, { method: "GET", path: "/users", status, durationMs: 1 });
+
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("createRequestLogger", () => {
+  it("adds the request id to every line", () => {
+    const { lines, logger } = createCapturedLogger("info");
+    const log = createRequestLogger(logger, "req-42");
+
+    log.info({ step: 1 }, "first");
+    log.warn({ step: 2 }, "second");
+    log.error({ step: 3 }, "third");
+
+    expect(lines).toMatchObject([
+      { level: 30, requestId: "req-42", step: 1, msg: "first" },
+      { level: 40, requestId: "req-42", step: 2, msg: "second" },
+      { level: 50, requestId: "req-42", step: 3, msg: "third" },
+    ]);
+  });
+
+  it("creates the child logger only when a line is written, once", () => {
+    const { logger } = createCapturedLogger("info");
+    const child = spyOn(logger, "child");
+    const log = createRequestLogger(logger, "req-42");
+
+    expect(log.isLevelEnabled("info")).toBe(true);
+    expect(child).not.toHaveBeenCalled();
+
+    log.info({}, "first");
+    log.info({}, "second");
+    expect(child).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports the parent's enabled levels", () => {
+    const { logger } = createCapturedLogger("warn");
+    const log = createRequestLogger(logger, "req-42");
+
+    expect(log.isLevelEnabled("info")).toBe(false);
+    expect(log.isLevelEnabled("warn")).toBe(true);
+    expect(log.isLevelEnabled("error")).toBe(true);
   });
 });
 

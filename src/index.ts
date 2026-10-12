@@ -23,11 +23,14 @@ import {
   handleError,
   handleRouteMatch,
   invalidHostResponse,
+  isPromiseLike,
+  pathnameOf,
   resolveRequestTimeoutMs,
 } from "#lyn/request";
 import { InternalServerError, isLynError } from "#lyn/error";
 import {
   errorForLog,
+  createRequestLogger,
   logRequest,
   resolveRequestId,
   runWithRequestLog,
@@ -82,6 +85,7 @@ class Lyn<
   private status: ServerStatus = "stopped";
   private config: LynConfig<TEnvConfig, TSchema>;
   private readonly features: Feature[];
+  private readonly hasRequestGuards: boolean;
   private readonly appContext: Record<string, unknown>;
   private readonly allowedHosts: ReadonlySet<string>;
   private readonly maxBodyBytes: number;
@@ -115,6 +119,7 @@ class Lyn<
     this.features = featureSetups.map((setup, index) =>
       setup.create({ app: this.env, own: featureEnvs[index] ?? {} })
     );
+    this.hasRequestGuards = this.features.some((feature) => feature.onRequest);
     this.appContext = Object.assign(
       {},
       ...this.features.map((feature) => feature.context)
@@ -213,7 +218,7 @@ class Lyn<
     return undefined;
   };
 
-  handle(request: Request): Promise<Response> {
+  async handle(request: Request): Promise<Response> {
     return this.dispatch(request, { ip: undefined });
   }
 
@@ -242,23 +247,37 @@ class Lyn<
     );
   }
 
-  private async route(
+  private route(
     request: Request,
     client: ClientInfo,
     pathname: string,
+    requestId: string,
     requestLogger: RequestLogger
-  ): Promise<Response> {
-    if (!this.isHostAllowed(request)) return invalidHostResponse();
+  ): Response | Promise<Response> {
+    if (!this.isHostAllowed(request)) return invalidHostResponse(requestId);
+    if (!this.hasRequestGuards)
+      return this.runRoute(request, pathname, requestId, requestLogger);
 
-    const rejection = await this.rejectRequest(request, client, requestLogger);
-    if (rejection) return handleError(rejection);
+    return this.rejectRequest(request, client, requestLogger).then((rejection) =>
+      rejection
+        ? handleError(rejection, requestId)
+        : this.runRoute(request, pathname, requestId, requestLogger)
+    );
+  }
 
+  private runRoute(
+    request: Request,
+    pathname: string,
+    requestId: string,
+    requestLogger: RequestLogger
+  ): Response | Promise<Response> {
     return runWithRequestLog(requestLogger, () =>
       handleRouteMatch({
         request,
         pathname,
         match: this.router.match(request.method, pathname),
         log: requestLogger,
+        requestId,
         appContext: this.appContext,
         mapError: this.mapError,
         maxBodyBytes: this.maxBodyBytes,
@@ -267,19 +286,42 @@ class Lyn<
     );
   }
 
-  private async dispatch(request: Request, client: ClientInfo): Promise<Response> {
+  private dispatch(
+    request: Request,
+    client: ClientInfo
+  ): Response | Promise<Response> {
     const startedAt = performance.now();
     const requestId = resolveRequestId(request);
-    const requestLogger = internalLogger.child({ requestId });
-    const { pathname } = new URL(request.url);
-    const routedResponse = await this.route(request, client, pathname, requestLogger);
+    const requestLogger = createRequestLogger(internalLogger, requestId);
+    const pathname = pathnameOf(request.url);
+    const finish = (routedResponse: Response) =>
+      this.finishResponse(request, routedResponse, {
+        requestLogger,
+        pathname,
+        startedAt,
+      });
+
+    const routed = this.route(request, client, pathname, requestId, requestLogger);
+    return isPromiseLike(routed) ? routed.then(finish) : finish(routed);
+  }
+
+  private finishResponse(
+    request: Request,
+    routedResponse: Response,
+    {
+      requestLogger,
+      pathname,
+      startedAt,
+    }: {
+      requestLogger: RequestLogger;
+      pathname: string;
+      startedAt: number;
+    }
+  ): Response {
     const response = this.features.reduce(
       (current, feature) => feature.onResponse?.(request, current) ?? current,
       routedResponse
     );
-    response.headers.set("X-Request-Id", requestId);
-    if (!response.headers.has("X-Content-Type-Options"))
-      response.headers.set("X-Content-Type-Options", "nosniff");
 
     logRequest(requestLogger, {
       method: request.method,
@@ -317,7 +359,11 @@ class Lyn<
       port,
       maxRequestBodySize: this.maxBodyBytes,
       fetch: (request, server) =>
-        this.dispatch(request, { ip: server.requestIP(request)?.address }),
+        this.dispatch(request, {
+          get ip() {
+            return server.requestIP(request)?.address;
+          },
+        }),
       idleTimeout: SERVER_IDLE_TIMEOUT_SECONDS,
     });
     this.status = "running";

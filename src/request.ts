@@ -9,7 +9,11 @@ import {
   ValidationError,
 } from "#lyn/error";
 import { HTTP_STATUS } from "#lyn/http-status";
-import { errorForLog, type RequestLogger } from "#lyn/request-log";
+import {
+  errorForLog,
+  REQUEST_ID_HEADER,
+  type RequestLogger,
+} from "#lyn/request-log";
 import type { Route, RouteHandlerBodyResponse, SetDefinition } from "#lyn/types";
 import { readJsonBody } from "#lyn/body";
 import { parseParams } from "#lyn/params";
@@ -33,6 +37,7 @@ type RequestDispatch = {
   pathname: string;
   match: RouteMatch;
   log: RequestLogger;
+  requestId: string;
   appContext: Record<string, unknown>;
   mapError: (error: unknown) => LynError | undefined;
   maxBodyBytes: number;
@@ -44,6 +49,7 @@ export const handleRouteMatch = ({
   pathname,
   match,
   log,
+  requestId,
   appContext,
   mapError,
   maxBodyBytes,
@@ -53,6 +59,7 @@ export const handleRouteMatch = ({
     case "found":
       return handleRequestLifecycle(request, match.route, match.params, {
         log,
+        requestId,
         appContext,
         mapError,
         maxBodyBytes,
@@ -62,86 +69,144 @@ export const handleRouteMatch = ({
       if (request.method === "OPTIONS") {
         return new Response(null, {
           status: HTTP_STATUS.NO_CONTENT,
-          headers: { Allow: [...match.allowedMethods, "OPTIONS"].join(", ") },
+          headers: {
+            ...requestHeaders(requestId),
+            Allow: [...match.allowedMethods, "OPTIONS"].join(", "),
+          },
         });
       }
       return handleError(
-        new MethodNotAllowedError(request.method, pathname, match.allowedMethods)
+        new MethodNotAllowedError(request.method, pathname, match.allowedMethods),
+        requestId
       );
     case "not_found":
-      return handleError(new NotFoundError(request.method, pathname));
+      return handleError(new NotFoundError(request.method, pathname), requestId);
   }
 };
 
-const handleRequestLifecycle = async (
+const handleRequestLifecycle = (
   request: Request,
   route: AnyRoute,
   params: Record<string, string>,
   {
     log,
+    requestId,
     appContext,
     mapError,
     maxBodyBytes,
     requestTimeoutMs,
-  }: Pick<
-    RequestDispatch,
-    "log" | "appContext" | "mapError" | "maxBodyBytes" | "requestTimeoutMs"
-  >
-): Promise<Response> => {
+  }: Omit<RequestDispatch, "request" | "pathname" | "match">
+): Response | Promise<Response> => {
+  const set = new ResponseSet(getDefaultStatusFromMethod(route.method));
+  const respond = (body: RouteHandlerBodyResponse) =>
+    handleResponse(body, ResponseSet.headersOf(set), set.status, requestId);
+  const abort = createRequestAbort(request);
+  const failWith = (error: unknown) =>
+    handleLifecycleError(error, { log, mapError, requestId });
+
   try {
-    const set: SetDefinition = {
-      headers: new Headers(),
-      status: getDefaultStatusFromMethod(route.method),
-    };
-
-    const timeout = new AbortController();
-    const signal = AbortSignal.any([request.signal, timeout.signal]);
-    const responseBody = await withTimeout(
-      handleRequest(request, params, route, {
-        set,
-        signal,
-        appContext,
-        maxBodyBytes,
-      }),
-      requestTimeoutMs,
-      timeout
+    const pendingBody = handleRequest(
+      request,
+      params,
+      route,
+      { set, abort, appContext },
+      maxBodyBytes
     );
+    if (!isPromiseLike(pendingBody)) return respond(pendingBody);
 
-    return handleResponse(responseBody, set.headers, set.status);
+    return withTimeout(pendingBody, requestTimeoutMs, abort)
+      .then(respond)
+      .catch(failWith);
   } catch (error: unknown) {
-    if (isLynError(error)) {
-      return handleError(error);
-    }
-    const mappedError = mapError(error);
-    if (mappedError) {
-      log.warn(errorForLog(error), `Handler error mapped to ${mappedError.code}`);
-      return handleError(mappedError);
-    }
-    log.error(errorForLog(error), "Unhandled error in route handler");
-    return handleError(new InternalServerError());
+    return failWith(error);
   }
 };
 
-const setDefaultContentType = (headers: Headers, contentType: string) => {
-  if (!headers.has("Content-Type")) headers.set("Content-Type", contentType);
+class ResponseSet implements SetDefinition {
+  #headers: Headers | undefined;
+
+  constructor(public status: number) {}
+
+  get headers(): Headers {
+    return (this.#headers ??= new Headers());
+  }
+
+  set headers(replaced: Headers) {
+    this.#headers = replaced;
+  }
+
+  static headersOf(set: ResponseSet): Headers | undefined {
+    return set.#headers;
+  }
+}
+
+const handleLifecycleError = (
+  error: unknown,
+  { log, mapError, requestId }: Pick<RequestDispatch, "log" | "mapError" | "requestId">
+): Response => {
+  if (isLynError(error)) return handleError(error, requestId);
+  const mappedError = mapError(error);
+  if (mappedError) {
+    log.warn(errorForLog(error), `Handler error mapped to ${mappedError.code}`);
+    return handleError(mappedError, requestId);
+  }
+  log.error(errorForLog(error), "Unhandled error in route handler");
+  return handleError(new InternalServerError(), requestId);
+};
+
+const CONTENT_TYPE = {
+  TEXT: "text/plain; charset=utf-8",
+  JSON: "application/json",
+} as const;
+const CONTENT_TYPE_OPTIONS_HEADER = "X-Content-Type-Options";
+const NOSNIFF = "nosniff";
+
+const defaultContentType = (body: RouteHandlerBodyResponse) => {
+  if (body === undefined) return undefined;
+  return typeof body === "string" ? CONTENT_TYPE.TEXT : CONTENT_TYPE.JSON;
+};
+
+const requestHeaders = (requestId: string): Record<string, string> => ({
+  [REQUEST_ID_HEADER]: requestId,
+  [CONTENT_TYPE_OPTIONS_HEADER]: NOSNIFF,
+});
+
+const addRequestHeaders = (headers: Headers, requestId: string): Headers => {
+  headers.set(REQUEST_ID_HEADER, requestId);
+  if (!headers.has(CONTENT_TYPE_OPTIONS_HEADER))
+    headers.set(CONTENT_TYPE_OPTIONS_HEADER, NOSNIFF);
+  return headers;
+};
+
+const responseHeaders = (
+  handlerHeaders: Headers | undefined,
+  contentType: string | undefined,
+  requestId: string
+): Headers | Record<string, string> => {
+  if (!handlerHeaders) {
+    const headers = requestHeaders(requestId);
+    if (contentType) headers["Content-Type"] = contentType;
+    return headers;
+  }
+
+  if (contentType && !handlerHeaders.has("Content-Type"))
+    handlerHeaders.set("Content-Type", contentType);
+  return addRequestHeaders(handlerHeaders, requestId);
 };
 
 const handleResponse = (
-  bodyResponse: RouteHandlerBodyResponse,
-  headers: Headers,
-  status: number
+  body: RouteHandlerBodyResponse,
+  handlerHeaders: Headers | undefined,
+  status: number,
+  requestId: string
 ): Response => {
-  if (bodyResponse === undefined) {
-    return new Response(null, { headers, status });
-  }
-
-  if (typeof bodyResponse === "string") {
-    setDefaultContentType(headers, "text/plain; charset=utf-8");
-    return new Response(bodyResponse, { headers, status });
-  }
-
-  setDefaultContentType(headers, "application/json");
-  return Response.json(bodyResponse, { headers, status });
+  const init = {
+    status,
+    headers: responseHeaders(handlerHeaders, defaultContentType(body), requestId),
+  };
+  if (body === undefined) return new Response(null, init);
+  if (typeof body === "string") return new Response(body, init);
+  return Response.json(body, init);
 };
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
@@ -153,16 +218,38 @@ export const resolveRequestTimeoutMs = (value: number | undefined): number => {
   return value;
 };
 
+type RequestAbort = {
+  readonly signal: AbortSignal;
+  abort: (reason: Error) => void;
+};
+
+const createRequestAbort = (request: Request): RequestAbort => {
+  let controller: AbortController | undefined;
+  let signal: AbortSignal | undefined;
+  const timeoutController = () => (controller ??= new AbortController());
+
+  return {
+    get signal() {
+      signal ??= AbortSignal.any([request.signal, timeoutController().signal]);
+      return signal;
+    },
+    abort: (reason) => timeoutController().abort(reason),
+  };
+};
+
+export const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLike<T> =>
+  typeof (value as PromiseLike<T> | null | undefined)?.then === "function";
+
 const withTimeout = async <T>(
-  work: Promise<T>,
+  work: PromiseLike<T>,
   timeoutMs: number,
-  controller: AbortController
+  abort: RequestAbort
 ): Promise<T> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       const error = new RequestTimeoutError();
-      controller.abort(error);
+      abort.abort(error);
       reject(error);
     }, timeoutMs);
   });
@@ -178,30 +265,38 @@ const dataOrThrow = <T>(result: ZodSafeParseResult<T>): T => {
   return result.data;
 };
 
-const handleRequest = async (
+type HandlerInput = {
+  set: SetDefinition;
+  abort: RequestAbort;
+  appContext: Record<string, unknown>;
+};
+
+type ValidatedInput = { body?: unknown; params?: unknown; query?: unknown };
+
+const handleRequest = (
+  request: Request,
+  params: Record<string, string>,
+  route: AnyRoute,
+  input: HandlerInput,
+  maxBodyBytes: number
+): RouteHandlerBodyResponse | Promise<RouteHandlerBodyResponse> => {
+  const bodySchema = route.validation?.body;
+  if (!bodySchema) return runHandler(request, params, route, input, {});
+
+  return readJsonBody(request, maxBodyBytes).then((body) =>
+    runHandler(request, params, route, input, {
+      body: dataOrThrow(bodySchema.safeParse(body)),
+    })
+  );
+};
+
+const runHandler = (
   request: Request,
   params: Record<string, string>,
   { handler, validation }: AnyRoute,
-  {
-    set,
-    signal,
-    appContext,
-    maxBodyBytes,
-  }: {
-    set: SetDefinition;
-    signal: AbortSignal;
-    appContext: Record<string, unknown>;
-    maxBodyBytes: number;
-  }
-): Promise<RouteHandlerBodyResponse> => {
-  const validatedInput: { body?: unknown; params?: unknown; query?: unknown } =
-    {};
-
-  if (validation?.body) {
-    const body = await readJsonBody(request, maxBodyBytes);
-    validatedInput.body = dataOrThrow(validation.body.safeParse(body));
-  }
-
+  { set, abort, appContext }: HandlerInput,
+  validatedInput: ValidatedInput
+): RouteHandlerBodyResponse => {
   if (validation?.params) {
     validatedInput.params = dataOrThrow(
       parseParams(params, validation.params)
@@ -215,13 +310,34 @@ const handleRequest = async (
     );
   }
 
-  return handler({ ...appContext, request, set, signal, ...validatedInput });
+  return handler({
+    ...appContext,
+    request,
+    set,
+    get signal() {
+      return abort.signal;
+    },
+    ...validatedInput,
+  });
 };
 
-export const invalidHostResponse = (): Response => handleError(new InvalidHostError());
+export const pathnameOf = (url: string): string => {
+  const start = url.indexOf("/", url.indexOf("//") + 2);
+  if (start === -1) return "/";
+  const query = url.indexOf("?", start);
+  const fragment = url.indexOf("#", start);
+  const end = Math.min(
+    query === -1 ? url.length : query,
+    fragment === -1 ? url.length : fragment
+  );
+  return url.slice(start, end);
+};
 
-export const handleError = (error: LynError): Response => {
-  return Response.json(
+export const invalidHostResponse = (requestId: string): Response =>
+  handleError(new InvalidHostError(), requestId);
+
+export const handleError = (error: LynError, requestId: string): Response =>
+  Response.json(
     {
       code: error.code,
       message: error.message,
@@ -229,7 +345,6 @@ export const handleError = (error: LynError): Response => {
     },
     {
       status: error.status,
-      headers: error.headers,
+      headers: addRequestHeaders(new Headers(error.headers), requestId),
     }
   );
-};

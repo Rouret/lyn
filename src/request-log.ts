@@ -1,12 +1,12 @@
 import { isClientError, isServerError } from "#lyn/http-status";
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { Logger } from "pino";
 
 type LogMethod = (fields: object, message: string) => void;
+type LogLevel = "info" | "warn" | "error";
 
-export type RequestLogger = {
-  info: LogMethod;
-  warn: LogMethod;
-  error: LogMethod;
+export type RequestLogger = Record<LogLevel, LogMethod> & {
+  isLevelEnabled: (level: LogLevel) => boolean;
 };
 
 type RequestLogEntry = {
@@ -16,17 +16,33 @@ type RequestLogEntry = {
   durationMs: number;
 };
 
+export const REQUEST_ID_HEADER = "X-Request-Id";
 const MAX_REQUEST_ID_LENGTH = 128;
 const SAFE_REQUEST_ID = new RegExp(`^[A-Za-z0-9._-]{1,${MAX_REQUEST_ID_LENGTH}}$`);
 
 export const resolveRequestId = (request: Request): string => {
-  const incomingId = request.headers.get("X-Request-Id");
+  const incomingId = request.headers.get(REQUEST_ID_HEADER);
   return incomingId && SAFE_REQUEST_ID.test(incomingId)
     ? incomingId
     : crypto.randomUUID();
 };
 
-const levelForStatus = (status: number): keyof RequestLogger => {
+export const createRequestLogger = (
+  parent: Logger,
+  requestId: string
+): RequestLogger => {
+  let child: Logger | undefined;
+  const requestChild = () => (child ??= parent.child({ requestId }));
+
+  return {
+    info: (fields, message) => requestChild().info(fields, message),
+    warn: (fields, message) => requestChild().warn(fields, message),
+    error: (fields, message) => requestChild().error(fields, message),
+    isLevelEnabled: (level) => parent.isLevelEnabled(level),
+  };
+};
+
+const levelForStatus = (status: number): LogLevel => {
   if (isServerError(status)) return "error";
   if (isClientError(status)) return "warn";
   return "info";
@@ -35,8 +51,11 @@ const levelForStatus = (status: number): keyof RequestLogger => {
 const roundToHundredths = (value: number) => Math.round(value * 100) / 100;
 
 export const logRequest = (log: RequestLogger, entry: RequestLogEntry) => {
+  const level = levelForStatus(entry.status);
+  if (!log.isLevelEnabled(level)) return;
+
   const durationMs = roundToHundredths(entry.durationMs);
-  log[levelForStatus(entry.status)](
+  log[level](
     { ...entry, durationMs },
     `${entry.method} ${entry.path} ${entry.status} ${durationMs}ms`
   );
