@@ -126,7 +126,8 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   router and return `this`. `get` has no body generic.
 - `handle(request)` is the single entry point: request id + child logger →
   parse pathname → `router.match` → `handleRouteMatch({ …, log, appContext })`
-  → each feature's `onResponse` → `X-Request-Id` header → one `logRequest`
+  → each feature's `onResponse` → `X-Request-Id` header →
+  `X-Content-Type-Options: nosniff` unless already set → one `logRequest`
   line. Tests and `listen()` both
   use it. While a server is running, a `Host` header outside
   `server.allowedHosts` (default `127.0.0.1`, `localhost`, `::1`, plus the

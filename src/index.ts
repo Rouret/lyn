@@ -229,6 +229,8 @@ class Lyn<
       routedResponse
     );
     response.headers.set("X-Request-Id", requestId);
+    if (!response.headers.has("X-Content-Type-Options"))
+      response.headers.set("X-Content-Type-Options", "nosniff");
 
     logRequest(requestLogger, {
       method: request.method,

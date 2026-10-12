@@ -14,6 +14,36 @@ describe("handle", () => {
     expect(() => app.url).toThrow("Server is not running");
   });
 
+  it("sends X-Content-Type-Options: nosniff on every response", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG)
+      .get("/", () => "ok")
+      .get("/boom", () => {
+        throw new Error("boom");
+      });
+    const client = createTestClient(app);
+
+    const responses = await Promise.all([
+      client.get("/"),
+      client.get("/boom"),
+      client.get("/missing"),
+      client.post("/"),
+    ]);
+
+    for (const response of responses)
+      expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  });
+
+  it("keeps an X-Content-Type-Options header set by the handler", async () => {
+    const app = new Lyn(TEST_LYN_CONFIG).get("/", ({ set }) => {
+      set.headers.set("X-Content-Type-Options", "custom");
+      return "ok";
+    });
+
+    const response = await createTestClient(app).get("/");
+
+    expect(response.headers.get("X-Content-Type-Options")).toBe("custom");
+  });
+
   it("dispatches each method of a path to its own handler", async () => {
     const app = new Lyn(TEST_LYN_CONFIG)
       .get("/", () => "GET")

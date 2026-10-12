@@ -95,7 +95,10 @@ dropped. Set `set.status = 200` to send it.
 :::
 
 Every response also gets an `X-Request-Id` header, which matches the
-request's [log line](../configuration/logging.md#request-ids).
+request's [log line](../configuration/logging.md#request-ids), and
+`X-Content-Type-Options: nosniff`, so browsers never run a JSON or text
+response as another type. Set your own `X-Content-Type-Options` with
+`set.headers` to replace it.
 
 ::: info Not supported yet
 - Streaming, files or a custom `Response`.
