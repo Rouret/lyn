@@ -1,4 +1,5 @@
 import { internalLogger } from "#lyn/logger";
+import { errorForLog } from "#lyn/request-log";
 
 type StoppableApp = { stop: () => Promise<void> };
 
@@ -14,7 +15,7 @@ const stopAllApps = async () => {
   );
   for (const result of results)
     if (result.status === "rejected")
-      internalLogger.error({ err: result.reason }, "Failed to stop the server");
+      internalLogger.error(errorForLog(result.reason), "Failed to stop the server");
 };
 
 // Listening to a signal disables the default exit: re-raise it once the apps are stopped.

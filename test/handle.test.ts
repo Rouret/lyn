@@ -277,4 +277,26 @@ describe("listen", () => {
       expect(child.signalCode).toBe(signal);
     }
   );
+
+  it("logs a failed stop without the error message", async () => {
+    const child = Bun.spawn(["bun", "test/fixtures/failing-stop-app.ts"], {
+      env: { ...Bun.env, NODE_ENV: "production", LOG_LEVEL: "error" },
+      stdout: "pipe",
+    });
+    const chunks = child.stdout.pipeThrough(new TextDecoderStream()).getReader();
+    let output = "";
+    while (!output.includes("ready")) {
+      const { value, done } = await chunks.read();
+      if (done) break;
+      output += value;
+    }
+
+    child.kill("SIGTERM");
+    for (let chunk = await chunks.read(); !chunk.done; chunk = await chunks.read())
+      output += chunk.value;
+    await child.exited;
+
+    expect(output).toContain("Failed to stop the server");
+    expect(output).not.toContain("hunter2");
+  });
 });

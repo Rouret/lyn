@@ -149,7 +149,7 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   feature order (closes the pool) and unregisters the app from
   `src/shutdown.ts`. `listen()` registers it: one shared `SIGINT`/`SIGTERM`
   listener exists while at least one app runs; on a signal it detaches,
-  `stop()`s every app (errors logged), then re-raises the signal so the
+  `stop()`s every app (errors logged through `errorForLog`), then re-raises the signal so the
   process exits as usual, unless the user has their own listener for it.
 - Any number of `Lyn` instances may coexist (no singleton).
 
