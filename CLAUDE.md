@@ -251,7 +251,8 @@ Users only see `new Lyn({ … })` options.
 ### CORS (`src/features/cors.ts`)
 
 Disabled unless `config.cors` is set (checked by `assertValidCorsConfig` in
-`createCorsFeature`: `"*"` + `credentials` throws). `Lyn.handle` passes every
+`createCorsFeature`: `"*"` + `credentials` throws, so does `credentials`
+without `allowedHeaders`). `Lyn.handle` passes every
 response, errors and 404/405 included, through `applyCors`: `Vary: Origin`
 unless origin is `"*"`; if the request `Origin` is allowed, sets
 Allow-Origin (+ Allow-Credentials); on a preflight (OPTIONS + Request-Method

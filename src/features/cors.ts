@@ -9,7 +9,10 @@ export type CorsConfig = {
   origin: "*" | string[] | ((origin: string) => boolean);
   /** Allow cookies and Authorization headers. Cannot be combined with `"*"`. */
   credentials?: boolean;
-  /** Request headers allowed in preflight. Defaults to the headers the browser asks for. */
+  /**
+   * Request headers allowed in preflight. Defaults to the headers the
+   * browser asks for. Required with `credentials`.
+   */
   allowedHeaders?: string[];
   /** Response headers readable by the browser. */
   exposedHeaders?: string[];
@@ -23,6 +26,10 @@ const assertValidCorsConfig = (config: CorsConfig) => {
   if (config.origin === "*" && config.credentials)
     throw new Error(
       'CORS origin "*" cannot be used with credentials: list the allowed origins instead'
+    );
+  if (config.credentials && !config.allowedHeaders)
+    throw new Error(
+      "CORS credentials require allowedHeaders: list the request headers the browser may send"
     );
 };
 

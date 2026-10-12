@@ -8,6 +8,7 @@ new Lyn({
   cors: {
     origin: ["https://app.example.com"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   },
 });
 ```
@@ -20,7 +21,7 @@ CORS is **disabled** when the option is absent: Lyn sends no CORS header.
 | --- | --- | --- |
 | `origin` | `"*"`, `string[]` or `(origin) => boolean` | required |
 | `credentials` | `boolean` | `false` |
-| `allowedHeaders` | `string[]` | the headers the browser asks for |
+| `allowedHeaders` | `string[]` | the headers the browser asks for; required with `credentials` |
 | `exposedHeaders` | `string[]` | `[]` |
 | `maxAge` | `number`, in seconds | `600` |
 
@@ -39,6 +40,10 @@ origin: (origin) => origin.endsWith(".example.com")  // decided per request
 Lets the browser send cookies and the `Authorization` header. The CORS
 spec forbids it with `origin: "*"`, so Lyn throws at startup if you combine
 them.
+
+With `credentials`, `allowedHeaders` is required, so that a page cannot
+send any header it likes along with your users' cookies. Lyn throws at
+startup if it is missing.
 
 ### `allowedHeaders` and `exposedHeaders`
 

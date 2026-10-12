@@ -163,7 +163,11 @@ describe("CORS with an origin function", () => {
 
 describe("CORS options", () => {
   it("allows credentials", async () => {
-    const app = createApp({ origin: [APP_ORIGIN], credentials: true });
+    const app = createApp({
+      origin: [APP_ORIGIN],
+      credentials: true,
+      allowedHeaders: ["Content-Type"],
+    });
 
     const response = await send(app, "/users", {
       headers: { Origin: APP_ORIGIN },
@@ -183,6 +187,12 @@ describe("CORS options", () => {
 
     expect(response.headers.get("access-control-expose-headers")).toBe(
       "X-Total, ETag"
+    );
+  });
+
+  it("refuses credentials without allowedHeaders", () => {
+    expect(() => createApp({ origin: [APP_ORIGIN], credentials: true })).toThrow(
+      "CORS credentials require allowedHeaders: list the request headers the browser may send"
     );
   });
 
