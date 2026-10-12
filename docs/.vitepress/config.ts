@@ -42,6 +42,7 @@ export default defineConfig({
           { text: "Overview", link: "/configuration/overview" },
           { text: "Environment variables", link: "/configuration/environment-variables" },
           { text: "CORS", link: "/configuration/cors" },
+          { text: "Rate limiting", link: "/configuration/rate-limiting" },
           { text: "Logging", link: "/configuration/logging" },
         ],
       },

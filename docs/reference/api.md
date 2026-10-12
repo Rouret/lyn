@@ -29,6 +29,7 @@ Creates an app. Reads and checks the environment variables right away.
 | --- | --- | --- |
 | `env` | `Record<string, { name: string; type: "string" \| "number" \| "boolean" }>` | [Environment variables](../configuration/environment-variables.md) |
 | `cors` | `{ origin, credentials?, allowedHeaders?, exposedHeaders?, maxAge? }` | [CORS](../configuration/cors.md) |
+| `rateLimit` | `{ max, windowMs?, key? }` | [Rate limiting](../configuration/rate-limiting.md) |
 | `database` | `{ schema, url?, pool?, logQueries?, migrateOnStart?, statementTimeoutMs? }` | [Database](../integrations/database.md) |
 | `start.hideLynLogo` | `boolean` | [Configuration](../configuration/overview.md) |
 | `server.hostname` | `string`, default `"127.0.0.1"` | [Routing](../essentials/routing.md#starting-and-stopping) |
@@ -75,7 +76,7 @@ See [Handlers](../essentials/handlers.md).
 
 ## Error codes
 
-`INVALID_HOST`, `VALIDATION`, `NO_BODY`, `INVALID_JSON`, `PAYLOAD_TOO_LARGE`, `REQUEST_TIMEOUT`, `UNSUPPORTED_MEDIA_TYPE`,
+`INVALID_HOST`, `VALIDATION`, `NO_BODY`, `INVALID_JSON`, `PAYLOAD_TOO_LARGE`, `REQUEST_TIMEOUT`, `TOO_MANY_REQUESTS`, `UNSUPPORTED_MEDIA_TYPE`,
 `NOT_FOUND`, `METHOD_NOT_ALLOWED`, `CONFLICT`, `INTERNAL_SERVER_ERROR`.
 See [Errors](../essentials/errors.md#error-codes).
 

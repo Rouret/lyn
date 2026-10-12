@@ -91,6 +91,17 @@ export class PayloadTooLargeError extends LynError {
   }
 }
 
+export class TooManyRequestsError extends LynError {
+  constructor(retryAfterSeconds: number) {
+    super(
+      "TOO_MANY_REQUESTS",
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      "Too many requests, retry later"
+    );
+    this.headers.set("Retry-After", String(retryAfterSeconds));
+  }
+}
+
 export class InvalidJsonError extends LynError {
   constructor() {
     super("INVALID_JSON", HTTP_STATUS.BAD_REQUEST, "Request body is not valid JSON");

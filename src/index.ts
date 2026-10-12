@@ -14,12 +14,23 @@ import {
   type DatabaseOf,
   type DatabaseSchema,
 } from "#lyn/features/database";
-import type { Feature } from "#lyn/features/feature";
+import type { ClientInfo, Feature } from "#lyn/features/feature";
+import { rateLimitFeature } from "#lyn/features/rate-limit";
 import { resolveMaxBodyBytes } from "#lyn/body";
 import { isRequestHostAllowed, resolveAllowedHosts } from "#lyn/host";
 import { internalLogger, logger } from "#lyn/logger";
-import { handleRouteMatch, invalidHostResponse, resolveRequestTimeoutMs } from "#lyn/request";
-import { logRequest, resolveRequestId, runWithRequestLog } from "#lyn/request-log";
+import {
+  handleError,
+  handleRouteMatch,
+  invalidHostResponse,
+  resolveRequestTimeoutMs,
+} from "#lyn/request";
+import {
+  logRequest,
+  resolveRequestId,
+  runWithRequestLog,
+  type RequestLogger,
+} from "#lyn/request-log";
 import { createRouter } from "#lyn/router";
 import { forgetOnShutdownSignal, stopOnShutdownSignal } from "#lyn/shutdown";
 import type {
@@ -42,7 +53,7 @@ const DEFAULT_LYN_CONFIG: Pick<LynConfig, "start"> = {
   },
 };
 
-const BUILT_IN_FEATURES = [databaseFeature, corsFeature];
+const BUILT_IN_FEATURES = [databaseFeature, corsFeature, rateLimitFeature];
 
 const ANY_FREE_PORT = 0;
 const LOOPBACK_HOST = "127.0.0.1";
@@ -200,30 +211,57 @@ class Lyn<
     return undefined;
   };
 
-  async handle(request: Request): Promise<Response> {
+  handle(request: Request): Promise<Response> {
+    return this.dispatch(request, { ip: undefined });
+  }
+
+  private rejectRequest = (request: Request, client: ClientInfo) => {
+    for (const feature of this.features) {
+      const rejection = feature.onRequest?.(request, client);
+      if (rejection) return rejection;
+    }
+    return undefined;
+  };
+
+  private isHostAllowed(request: Request) {
+    const servedPort = this.server?.port;
+    return (
+      servedPort === undefined ||
+      isRequestHostAllowed(request, this.allowedHosts, servedPort)
+    );
+  }
+
+  private async route(
+    request: Request,
+    client: ClientInfo,
+    pathname: string,
+    requestLogger: RequestLogger
+  ): Promise<Response> {
+    if (!this.isHostAllowed(request)) return invalidHostResponse();
+
+    const rejection = this.rejectRequest(request, client);
+    if (rejection) return handleError(rejection);
+
+    return runWithRequestLog(requestLogger, () =>
+      handleRouteMatch({
+        request,
+        pathname,
+        match: this.router.match(request.method, pathname),
+        log: requestLogger,
+        appContext: this.appContext,
+        mapError: this.mapError,
+        maxBodyBytes: this.maxBodyBytes,
+        requestTimeoutMs: this.requestTimeoutMs,
+      })
+    );
+  }
+
+  private async dispatch(request: Request, client: ClientInfo): Promise<Response> {
     const startedAt = performance.now();
     const requestId = resolveRequestId(request);
     const requestLogger = internalLogger.child({ requestId });
     const { pathname } = new URL(request.url);
-    const servedPort = this.server?.port;
-    const hostAllowed =
-      servedPort === undefined ||
-      isRequestHostAllowed(request, this.allowedHosts, servedPort);
-
-    const routedResponse = hostAllowed
-      ? await runWithRequestLog(requestLogger, () =>
-          handleRouteMatch({
-            request,
-            pathname,
-            match: this.router.match(request.method, pathname),
-            log: requestLogger,
-            appContext: this.appContext,
-            mapError: this.mapError,
-            maxBodyBytes: this.maxBodyBytes,
-            requestTimeoutMs: this.requestTimeoutMs,
-          })
-        )
-      : invalidHostResponse();
+    const routedResponse = await this.route(request, client, pathname, requestLogger);
     const response = this.features.reduce(
       (current, feature) => feature.onResponse?.(request, current) ?? current,
       routedResponse
@@ -267,7 +305,8 @@ class Lyn<
       hostname,
       port,
       maxRequestBodySize: this.maxBodyBytes,
-      fetch: (request) => this.handle(request),
+      fetch: (request, server) =>
+        this.dispatch(request, { ip: server.requestIP(request)?.address }),
       idleTimeout: SERVER_IDLE_TIMEOUT_SECONDS,
     });
     this.status = "running";

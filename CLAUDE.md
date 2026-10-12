@@ -84,8 +84,9 @@ src/
   migrations.ts  assertMigrationsExist, applyMigrations (drizzle migrator on a reserved connection holding pg_advisory_lock)
   db.ts        public `@rouret/lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
   features/
-    feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
+    feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onRequest?, onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
     cors.ts      CorsConfig, corsFeature (onResponse: actual + preflight headers)
+    rate-limit.ts  RateLimitConfig, rateLimitFeature (onRequest: fixed window per key, in memory, 429 + Retry-After)
     database.ts  DatabaseConfig, databaseFeature (DATABASE_URL env, Bun SQL, snake_case, ping / close, Postgres SQLSTATE → 409/400), DatabaseContext, DatabaseOf
   router.ts    Segment trie: path validation, matching, params extraction
   coerce.ts    coerceValue: plain decimal or boolean according to the zod field (unwraps .optional(); hex and exponents stay strings)
@@ -99,7 +100,7 @@ src/
   request.ts   Route match → 404/405/OPTIONS, or lifecycle: validation → handler → response / error
   types.ts     All public & internal types (Context, Validation, RouteHandler, LynConfig…)
   env.ts       Env-var schema → parsed values, throws LynEnvError on invalid/missing
-  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, INTERNAL_SERVER_ERROR)
+  error.ts     LynError + concrete errors (VALIDATION, NO_BODY, INVALID_JSON, UNSUPPORTED_MEDIA_TYPE, NOT_FOUND, METHOD_NOT_ALLOWED, CONFLICT, TOO_MANY_REQUESTS, INTERNAL_SERVER_ERROR)
   logger.ts    one pino root `logger` (exported) + `internalLogger` child (msgPrefix "[Lyn] ");
                options from env: JSON in production, pino-pretty otherwise, LOG_LEVEL, silent in lyn-test
   http-status.ts  HTTP_STATUS (named status codes), isClientError, isServerError
@@ -124,8 +125,10 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
 
 - `get/post/put/delete(path, handler, validation?)` add a `Route` to the
   router and return `this`. `get` has no body generic.
-- `handle(request)` is the single entry point: request id + child logger →
-  parse pathname → `router.match` → `handleRouteMatch({ …, log, appContext })`
+- `handle(request)` is the single entry point (`dispatch(request, { ip: undefined })`;
+  `listen()` calls `dispatch` with `server.requestIP`): request id + child logger →
+  parse pathname → Host check → each feature's `onRequest` (first LynError
+  answers, e.g. 429) → `router.match` → `handleRouteMatch({ …, log, appContext })`
   → each feature's `onResponse` → `X-Request-Id` header →
   `X-Content-Type-Options: nosniff` unless already set → one `logRequest`
   line. Tests and `listen()` both
@@ -137,7 +140,7 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   frames, and SQLSTATE — never the message, which can hold the SQL and
   its parameter values); LynErrors are covered by the request line.
 - `listen(port = 0)` is async: status `stopped → starting`, runs every
-  feature's `onStart` (database ping), then calls `Bun.serve({ hostname, fetch: req => this.handle(req), idleTimeout: 30 })`.
+  feature's `onStart` (database ping), then calls `Bun.serve({ hostname, fetch: (req, server) => this.dispatch(req, { ip }), idleTimeout: 30 })`.
   `hostname` defaults to `127.0.0.1` (`server.hostname` overrides it; `"0.0.0.0"` and `"::"` are wildcards).
   Bun's native `routes` option is deliberately **not** used, so that
   `handle()` and the server cannot diverge. The ASCII logo is printed unless
@@ -252,6 +255,17 @@ Users only see `new Lyn({ … })` options.
   `test/database-driver.test.ts` (load + JSON) guards the round trip:
   re-run it on every Bun or Drizzle upgrade, and drop the patch once
   upstream is fixed.
+
+### Rate limit (`src/features/rate-limit.ts`)
+
+Disabled unless `config.rateLimit` is set (`max`, `windowMs` default 60 s,
+validated as positive integers). `onRequest` keys each request with
+`key(request, { ip })`, default the connection IP, so `handle()` without
+`listen()` is never limited by default; `undefined` skips the limit. Fixed
+window per key in a `Map`, expired windows swept at most once per window.
+Over `max` → `TooManyRequestsError` (429, `Retry-After` in seconds), before
+routing, so 404s count too; CORS still applies to the 429. In memory and
+per process: no shared store.
 
 ### CORS (`src/features/cors.ts`)
 

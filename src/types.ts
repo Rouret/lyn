@@ -1,6 +1,7 @@
 import type { EnvConfig, LynEnv } from "#lyn/env";
 import type { CorsConfig } from "#lyn/features/cors";
 import type { DatabaseConfig, DatabaseSchema } from "#lyn/features/database";
+import type { RateLimitConfig } from "#lyn/features/rate-limit";
 
 import z, { ZodType } from "zod";
 
@@ -44,6 +45,14 @@ export type LynConfig<
    * new Lyn({ database: { schema } }) // reads DATABASE_URL
    */
   database?: DatabaseConfig<TSchema, LynEnv<TEnvConfig>>;
+  /**
+   * Limits how many requests each client may send per window, in memory
+   * and per process. Over the limit: `429 TOO_MANY_REQUESTS`. Disabled when
+   * omitted.
+   * @example
+   * new Lyn({ rateLimit: { max: 100, windowMs: 60_000 } })
+   */
+  rateLimit?: RateLimitConfig;
   start?: {
     /**
      * Remove the beautiful ascii art logo when the server starts

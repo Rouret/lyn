@@ -220,7 +220,7 @@ const handleRequest = async (
 
 export const invalidHostResponse = (): Response => handleError(new InvalidHostError());
 
-const handleError = (error: LynError): Response => {
+export const handleError = (error: LynError): Response => {
   return Response.json(
     {
       code: error.code,

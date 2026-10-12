@@ -182,6 +182,22 @@ describe("listen", () => {
     }
   });
 
+  it("rate-limits by the client IP", async () => {
+    const app = await new Lyn({ ...TEST_LYN_CONFIG, rateLimit: { max: 1 } })
+      .get("/", () => "ok")
+      .listen();
+
+    try {
+      const first = await fetch(app.url);
+      const second = await fetch(app.url);
+
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(429);
+    } finally {
+      await app.stop();
+    }
+  });
+
   it("binds the loopback interface unless a hostname is set", async () => {
     const local = await new Lyn(TEST_LYN_CONFIG).get("/", () => "ok").listen();
     const exposed = await new Lyn({
