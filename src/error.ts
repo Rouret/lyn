@@ -1,4 +1,4 @@
-import { HTTP_STATUS } from "#lyn/http-status";
+import { HTTP_STATUS, isErrorStatus } from "#lyn/http-status";
 import type { LynSupportedMethods } from "#lyn/types";
 import type { ZodError } from "zod";
 
@@ -21,7 +21,11 @@ export const isLynError = (error: unknown): error is LynError =>
   typeof error === "object" &&
   error !== null &&
   "isLynError" in error &&
-  error.isLynError === true;
+  error.isLynError === true &&
+  "code" in error &&
+  typeof error.code === "string" &&
+  "status" in error &&
+  isErrorStatus(error.status);
 
 const issuesForClient = (error?: ZodError): unknown => {
   let issues: unknown;

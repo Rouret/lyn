@@ -340,7 +340,8 @@ Treat these as current behaviour. Fix them only when asked, and update
 `docs/` and this file when you do.
 
 - `LynError` is not exported from `src/index.ts`; any thrown object with
-  `isLynError: true` is treated as one (duck-typed).
+  `isLynError: true`, a string `code` and an integer `status` in 400–599
+  is treated as one (duck-typed); anything else becomes a 500.
 - `ValidationError` does `JSON.parse(zodError.message)` and drops each
   issue's `pattern`; relies on Zod 4's message format. A message that is
   not JSON becomes an empty `cause`.

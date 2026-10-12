@@ -12,6 +12,14 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
+const MAX_ERROR_STATUS = 599;
+
+export const isErrorStatus = (status: unknown): status is number =>
+  typeof status === "number" &&
+  Number.isInteger(status) &&
+  status >= HTTP_STATUS.BAD_REQUEST &&
+  status <= MAX_ERROR_STATUS;
+
 export const isServerError = (status: number) =>
   status >= HTTP_STATUS.INTERNAL_SERVER_ERROR;
 

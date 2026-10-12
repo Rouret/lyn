@@ -85,6 +85,10 @@ const notFound = (message: string) =>
 { "code": "NOT_FOUND", "message": "User not found" }
 ```
 
+`code` must be a string and `status` an integer from `400` to `599`.
+Otherwise the error is treated as unexpected: the client gets a generic
+`500` and the error is logged.
+
 ::: info Not supported yet
 - An exported `LynError` class to extend. Until then, use the
   `isLynError` object above.

@@ -84,6 +84,11 @@ describe("Non-Error throws", () => {
     ["a string", "secret detail"],
     ["a number", 42],
     ["an object with a truthy non-boolean isLynError", { isLynError: "yes" }],
+    ["a Lyn error without a status", { isLynError: true, code: "X", message: "secret detail" }],
+    ["a Lyn error with a success status", { isLynError: true, code: "X", status: 200 }],
+    ["a Lyn error with a non-integer status", { isLynError: true, code: "X", status: 404.5 }],
+    ["a Lyn error with an out-of-range status", { isLynError: true, code: "X", status: 600 }],
+    ["a Lyn error without a code", { isLynError: true, status: 404 }],
   ];
 
   it.each(thrownValues)(
