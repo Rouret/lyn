@@ -39,10 +39,11 @@ const isOriginAllowed = (config: CorsConfig, origin: string): boolean => {
   return config.origin(origin);
 };
 
+export const isPreflightRequest = (request: Request) =>
+  request.method === "OPTIONS" && request.headers.has("Access-Control-Request-Method");
+
 const isPreflight = (request: Request, response: Response) =>
-  request.method === "OPTIONS" &&
-  request.headers.has("Access-Control-Request-Method") &&
-  response.status === HTTP_STATUS.NO_CONTENT;
+  isPreflightRequest(request) && response.status === HTTP_STATUS.NO_CONTENT;
 
 const setPreflightHeaders = (
   request: Request,

@@ -1,4 +1,5 @@
 import { TooManyRequestsError } from "#lyn/error";
+import { isPreflightRequest } from "#lyn/features/cors";
 import type { ClientInfo, FeatureDefinition } from "#lyn/features/feature";
 
 export type RateLimitConfig = {
@@ -13,13 +14,16 @@ export type RateLimitConfig = {
    * Identifies the client. Defaults to the IP of the TCP connection, which is
    * your proxy's behind a reverse proxy. `undefined` skips the limit.
    */
-  key?: (request: Request, client: ClientInfo) => string | undefined;
+  key?: (request: Request, client: ClientInfo) => string | undefined | Promise<string | undefined>;
+  /** Return `true` to let a request through without counting it. */
+  skip?: (request: Request, client: ClientInfo) => boolean | Promise<boolean>;
 };
 
 type Window = { count: number; resetAt: number };
 
 const DEFAULT_WINDOW_MS = 60_000;
 const MS_PER_SECOND = 1000;
+const MAX_CLIENTS_PER_GENERATION = 100_000;
 
 const assertPositiveInteger = (value: number, name: string) => {
   if (!Number.isInteger(value) || value <= 0)
@@ -28,30 +32,49 @@ const assertPositiveInteger = (value: number, name: string) => {
 
 const keyByIp = (_request: Request, { ip }: ClientInfo) => ip;
 
-const createRateLimiter = ({ max, windowMs = DEFAULT_WINDOW_MS, key = keyByIp }: RateLimitConfig) => {
-  const windows = new Map<string, Window>();
-  let nextSweepAt = 0;
+// Dropping a whole generation avoids an O(n) sweep; the size cap bounds memory.
+const createWindowStore = (windowMs: number) => {
+  let current = new Map<string, Window>();
+  let previous = new Map<string, Window>();
+  let rotateAt = 0;
 
-  const sweepExpiredWindows = (now: number) => {
-    if (now < nextSweepAt) return;
-    for (const [clientKey, window] of windows)
-      if (window.resetAt <= now) windows.delete(clientKey);
-    nextSweepAt = now + windowMs;
+  const rotate = (now: number) => {
+    const currentHasLiveWindows = now < rotateAt + windowMs;
+    previous = currentHasLiveWindows ? current : new Map();
+    current = new Map();
+    rotateAt = now + windowMs;
   };
 
-  return (request: Request, client: ClientInfo) => {
-    const clientKey = key(request, client);
+  return (clientKey: string, now: number): Window => {
+    if (now >= rotateAt) rotate(now);
+    const window = current.get(clientKey) ?? previous.get(clientKey);
+    if (window && window.resetAt > now) {
+      window.count++;
+      return window;
+    }
+    if (current.size >= MAX_CLIENTS_PER_GENERATION) rotate(now);
+    const freshWindow = { count: 1, resetAt: now + windowMs };
+    current.set(clientKey, freshWindow);
+    return freshWindow;
+  };
+};
+
+const createRateLimiter = ({
+  max,
+  windowMs = DEFAULT_WINDOW_MS,
+  key = keyByIp,
+  skip,
+}: RateLimitConfig) => {
+  const countRequest = createWindowStore(windowMs);
+
+  return async (request: Request, client: ClientInfo) => {
+    if (isPreflightRequest(request)) return undefined;
+    if (await skip?.(request, client)) return undefined;
+    const clientKey = await key(request, client);
     if (clientKey === undefined) return undefined;
 
-    const now = Date.now();
-    sweepExpiredWindows(now);
-
-    const window = windows.get(clientKey);
-    if (!window || window.resetAt <= now) {
-      windows.set(clientKey, { count: 1, resetAt: now + windowMs });
-      return undefined;
-    }
-    window.count++;
+    const now = performance.now();
+    const window = countRequest(clientKey, now);
     if (window.count <= max) return undefined;
     return new TooManyRequestsError(Math.ceil((window.resetAt - now) / MS_PER_SECOND));
   };

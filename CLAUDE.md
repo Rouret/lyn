@@ -84,7 +84,7 @@ src/
   migrations.ts  assertMigrationsExist, applyMigrations (drizzle migrator on a reserved connection holding pg_advisory_lock)
   db.ts        public `@rouret/lyn/db` entry: re-exports drizzle-orm + drizzle-orm/pg-core (5 ambiguous types re-exported from pg-core)
   features/
-    feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onRequest?, onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
+    feature.ts   FeatureDefinition: config → { env?, create(env) → Feature } | undefined; Feature: { context?, onRequest? (async), onStart?, onStop?, onResponse?, mapError? } — internal, not a public plugin API
     cors.ts      CorsConfig, corsFeature (onResponse: actual + preflight headers)
     rate-limit.ts  RateLimitConfig, rateLimitFeature (onRequest: fixed window per key, in memory, 429 + Retry-After)
     database.ts  DatabaseConfig, databaseFeature (DATABASE_URL env, Bun SQL, snake_case, ping / close, Postgres SQLSTATE → 409/400), DatabaseContext, DatabaseOf
@@ -127,8 +127,9 @@ Tests import `test/...` and `testing/...` via `baseUrl: "."`.
   router and return `this`. `get` has no body generic.
 - `handle(request)` is the single entry point (`dispatch(request, { ip: undefined })`;
   `listen()` calls `dispatch` with `server.requestIP`): request id + child logger →
-  parse pathname → Host check → each feature's `onRequest` (first LynError
-  answers, e.g. 429) → `router.match` → `handleRouteMatch({ …, log, appContext })`
+  parse pathname → Host check → each feature's async `onRequest` (first LynError
+  answers, e.g. 429; a thrown LynError answers too, anything else is
+  logged and becomes a 500) → `router.match` → `handleRouteMatch({ …, log, appContext })`
   → each feature's `onResponse` → `X-Request-Id` header →
   `X-Content-Type-Options: nosniff` unless already set → one `logRequest`
   line. Tests and `listen()` both
@@ -259,10 +260,16 @@ Users only see `new Lyn({ … })` options.
 ### Rate limit (`src/features/rate-limit.ts`)
 
 Disabled unless `config.rateLimit` is set (`max`, `windowMs` default 60 s,
-validated as positive integers). `onRequest` keys each request with
-`key(request, { ip })`, default the connection IP, so `handle()` without
-`listen()` is never limited by default; `undefined` skips the limit. Fixed
-window per key in a `Map`, expired windows swept at most once per window.
+validated as positive integers). `onRequest` ignores CORS preflights
+(`isPreflightRequest` from `cors.ts`), then lets a request through when
+`skip(request, { ip })` is true, then keys it with `key(request, { ip })`,
+default the connection IP, so `handle()` without `listen()` is never
+limited by default; `undefined` skips the limit. `key` and `skip` may be
+async. Fixed window per key, stored in two generations of `Map`s
+(`current`, `previous`) that rotate every window: a rotation drops a whole
+`Map` instead of sweeping it, and a `current` holding
+`MAX_CLIENTS_PER_GENERATION` (100 000) keys rotates early, so memory stays
+bounded under key rotation. Clock: `performance.now()`.
 Over `max` → `TooManyRequestsError` (429, `Retry-After` in seconds), before
 routing, so 404s count too; CORS still applies to the 429. In memory and
 per process: no shared store.

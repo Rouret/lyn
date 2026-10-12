@@ -9,7 +9,7 @@ export type ClientInfo = {
 
 export type Feature = {
   context?: Record<string, unknown>;
-  onRequest?: (request: Request, client: ClientInfo) => LynError | undefined;
+  onRequest?: (request: Request, client: ClientInfo) => Promise<LynError | undefined>;
   onStart?: () => Promise<void>;
   onStop?: () => Promise<void>;
   onResponse?: (request: Request, response: Response) => Response;

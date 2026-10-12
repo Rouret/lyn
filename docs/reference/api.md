@@ -29,7 +29,7 @@ Creates an app. Reads and checks the environment variables right away.
 | --- | --- | --- |
 | `env` | `Record<string, { name: string; type: "string" \| "number" \| "boolean" }>` | [Environment variables](../configuration/environment-variables.md) |
 | `cors` | `{ origin, credentials?, allowedHeaders?, exposedHeaders?, maxAge? }` | [CORS](../configuration/cors.md) |
-| `rateLimit` | `{ max, windowMs?, key? }` | [Rate limiting](../configuration/rate-limiting.md) |
+| `rateLimit` | `{ max, windowMs?, key?, skip? }` | [Rate limiting](../configuration/rate-limiting.md) |
 | `database` | `{ schema, url?, pool?, logQueries?, migrateOnStart?, statementTimeoutMs? }` | [Database](../integrations/database.md) |
 | `start.hideLynLogo` | `boolean` | [Configuration](../configuration/overview.md) |
 | `server.hostname` | `string`, default `"127.0.0.1"` | [Routing](../essentials/routing.md#starting-and-stopping) |

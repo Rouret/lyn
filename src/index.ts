@@ -25,7 +25,9 @@ import {
   invalidHostResponse,
   resolveRequestTimeoutMs,
 } from "#lyn/request";
+import { InternalServerError, isLynError } from "#lyn/error";
 import {
+  errorForLog,
   logRequest,
   resolveRequestId,
   runWithRequestLog,
@@ -215,12 +217,22 @@ class Lyn<
     return this.dispatch(request, { ip: undefined });
   }
 
-  private rejectRequest = (request: Request, client: ClientInfo) => {
-    for (const feature of this.features) {
-      const rejection = feature.onRequest?.(request, client);
-      if (rejection) return rejection;
+  private rejectRequest = async (
+    request: Request,
+    client: ClientInfo,
+    requestLogger: RequestLogger
+  ) => {
+    try {
+      for (const feature of this.features) {
+        const rejection = await feature.onRequest?.(request, client);
+        if (rejection) return rejection;
+      }
+      return undefined;
+    } catch (error: unknown) {
+      if (isLynError(error)) return error;
+      requestLogger.error(errorForLog(error), "Unhandled error before routing");
+      return new InternalServerError();
     }
-    return undefined;
   };
 
   private isHostAllowed(request: Request) {
@@ -239,7 +251,7 @@ class Lyn<
   ): Promise<Response> {
     if (!this.isHostAllowed(request)) return invalidHostResponse();
 
-    const rejection = this.rejectRequest(request, client);
+    const rejection = await this.rejectRequest(request, client, requestLogger);
     if (rejection) return handleError(rejection);
 
     return runWithRequestLog(requestLogger, () =>
