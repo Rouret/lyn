@@ -75,24 +75,18 @@ curl -X POST localhost:3000/users \
 
 Send a valid email and you get a `201 Created` with the new user.
 
-## What Lyn exports
-
-```ts
-import { Lyn, z, logger, LynEnvError, LynDatabaseError } from "@rouret/lyn";
-```
-
-| Export | What it is |
-| --- | --- |
-| `Lyn` | The application class |
-| `z` | Zod, re-exported so your schemas use the same version as Lyn |
-| `logger` | The [logger](../configuration/logging.md) Lyn uses, for your own logs |
-| `LynEnvError` | Thrown by `new Lyn()` when [environment variables](../configuration/environment-variables.md) are invalid |
-| `LynDatabaseError` | Thrown by `listen()` when the [database](../integrations/database.md) is unreachable |
-
-Drizzle helpers for the database come from `@rouret/lyn/db`.
-
 ## Next steps
 
-- [Routing](../essentials/routing.md): paths, parameters and route priority.
-- [Validation](../essentials/validation.md): body, params and query in detail.
-- [Database](../integrations/database.md): connect Postgres.
+Pick the next step that matches what you are building:
+
+| You want to | Read |
+| --- | --- |
+| Organise a growing app in several files | [Project structure](project-structure.md) |
+| Understand paths, parameters and priority | [Routing](../essentials/routing.md) |
+| Validate bodies, params and query strings | [Validation](../essentials/validation.md) |
+| Store data in Postgres | [Database](../integrations/database.md) |
+| Test your routes | [Testing](../guides/testing.md) |
+| Ship fast without shipping badly | [Best practices](../guides/best-practices.md) |
+| Deploy with Docker | [Production](../guides/production.md) |
+
+Everything Lyn exports is listed in the [API reference](../reference/api.md).

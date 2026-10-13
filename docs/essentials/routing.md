@@ -6,11 +6,26 @@ An app is a chain of routes. Each method returns the app, so you can keep
 chaining:
 
 ```ts
+import { Lyn, z } from "@rouret/lyn";
+
+const users = new Map<string, { name: string }>();
+const idSchema = z.object({ id: z.string() });
+const userSchema = z.object({ name: z.string().min(1) });
+
 const app = new Lyn()
-  .get("/users", listUsers)
-  .post("/users", createUser, { body: userSchema })
-  .put("/users/:id", updateUser, { params: idSchema, body: userSchema })
-  .delete("/users/:id", deleteUser, { params: idSchema });
+  .get("/users", () => [...users.values()])
+  .post("/users", ({ body }) => {
+    const id = crypto.randomUUID();
+    users.set(id, body);
+    return { id, ...body };
+  }, { body: userSchema })
+  .put("/users/:id", ({ params, body }) => {
+    users.set(params.id, body);
+    return { id: params.id, ...body };
+  }, { params: idSchema, body: userSchema })
+  .delete("/users/:id", ({ params }) => {
+    users.delete(params.id);
+  }, { params: idSchema });
 
 await app.listen(3000);
 ```
@@ -59,10 +74,13 @@ When several routes match, the most specific wins, segment by segment:
 
 ```ts
 new Lyn()
-  .get("/users/me", getCurrentUser)   // GET /users/me
-  .get("/users/:id", getUser)         // GET /users/42
-  .get("/users/*", usersFallback);    // GET /users/42/avatar
+  .get("/users/me", () => "me")          // GET /users/me
+  .get("/users/:id", () => "one user")   // GET /users/42
+  .get("/users/*", () => "fallback");    // GET /users/42/avatar
 ```
+
+Declaration order doesn't matter: `/users/me` wins even when it is
+declared last.
 
 ## When nothing matches
 
@@ -87,38 +105,10 @@ server starts:
 
 `/users/:id` and `/users/:userId` count as the same path.
 
-## Starting and stopping
+## Starting the server
 
-```ts
-const app = await new Lyn().get("/", () => "ok").listen(3000);
-
-app.url;          // "http://127.0.0.1:3000"
-await app.stop();
-```
-
-- `listen(port?)` runs the startup checks, such as the
-  [database connection](../integrations/database.md#startup-and-shutdown),
-  then starts serving. Without a port, Bun picks a free one.
-- The server accepts connections from this machine only
-  (`127.0.0.1`). To accept them from the network, set
-  `server.hostname` to `"0.0.0.0"`. `app.url` stays a loopback URL in
-  that case, because `0.0.0.0` is not an address you can request.
-- While the server is running, the `Host` header must be `127.0.0.1`,
-  `localhost`, `::1`, or a name in `server.allowedHosts` (the bind
-  address is added for you, unless it is a wildcard). Only the name is
-  checked, with or without a port. Anything else is
-  `400 INVALID_HOST`. `handle()` does not check `Host`: you built the
-  request yourself.
-- `stop()` stops the server and closes the database connection. Lyn also
-  calls it when the process receives `SIGINT` (Ctrl+C) or `SIGTERM`
-  (`docker stop`, Kubernetes), then lets the process exit. If your code
-  listens to that signal too, Lyn still stops the app but leaves the exit
-  to you.
-- `handle(request)` runs a standard `Request` through the app and returns
-  the `Response`, without a server. The server uses it for every request,
-  so the behaviour is identical. See [Testing](../guides/testing.md).
-
-You can run several `Lyn` apps in the same process.
+Routes answer once the app is started with `listen()`, or through
+`handle()` in tests. See [Server](server.md).
 
 ::: info Not supported yet
 - `PATCH`, `HEAD` and other methods.

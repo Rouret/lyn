@@ -90,6 +90,9 @@ const notFound = (message: string) =>
 Otherwise the error is treated as unexpected: the client gets a generic
 `500` and the error is logged.
 
+Keep messages for humans: no SQL, paths or other users' data. See
+[Keep errors boring](../guides/best-practices.md#keep-errors-boring).
+
 ::: info Not supported yet
 - An exported `LynError` class to extend. Until then, use the
   `isLynError` object above.

@@ -55,7 +55,9 @@ LynEnvError: Invalid environment variables:
   - PORT: expected a number
 ```
 
-The values themselves are never printed, since they may be secrets.
+The values themselves are never printed, since they may be secrets. For
+the other rules on secrets, see
+[Keep secrets secret](../guides/best-practices.md#keep-secrets-secret).
 
 Left uncaught, the error stops the process. You can also catch it:
 

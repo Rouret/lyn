@@ -56,6 +56,15 @@ That's all. Lyn:
 - checks the connection before `listen()` starts serving;
 - closes the connection on `stop()`, `SIGINT` and `SIGTERM`.
 
+Create the tables with [migrations](migrations.md).
+
+::: warning Don't send rows as they are
+The examples on this page return rows directly to stay short. In a real
+app, a row can hold password hashes or internal fields: map it to a DTO
+before returning it. See
+[Never return a database row](../guides/best-practices.md#never-return-a-database-row).
+:::
+
 ## `db` is plain Drizzle
 
 `ctx.db` in handlers and `app.db` are the instance Drizzle's `drizzle()`
@@ -70,7 +79,7 @@ import { eq, sql } from "@rouret/lyn/db";
   "/users/:id",
   ({ db, params }) =>
     db.query.users.findFirst({ where: eq(schema.users.id, params.id) }),
-  { params: z.object({ id: z.uuid() }) }
+  { params: z.object({ id: z.string().uuid() }) }
 )
 
 .post("/transfers", ({ db, body }) =>
@@ -118,58 +127,9 @@ Lyn configures Drizzle with `casing: "snake_case"`: camelCase keys in your
 schema map to snake_case columns, which is the usual Postgres convention.
 `displayName: text()` is stored as `display_name` without repeating the name.
 
-## Migrations
+## Connection
 
-The `lyn db` commands create and apply your migrations. Generating them
-uses [drizzle-kit](https://orm.drizzle.team/docs/kit-overview), installed
-once as a dev dependency:
-
-```bash
-bun add -d drizzle-kit
-```
-
-Lyn runs the `drizzle-kit` installed in this project's `node_modules`.
-A copy in a parent directory is ignored.
-
-```bash
-bunx lyn db generate   # write the SQL for your schema changes to drizzle/
-bunx lyn db migrate    # apply the pending migrations to DATABASE_URL
-bunx lyn db studio     # browse your data in Drizzle Studio
-```
-
-`generate` compares `src/db/schema.ts` with the previous migrations and
-writes a new SQL file to `drizzle/`. Commit that folder. `migrate` applies
-the files not applied yet, so you can run it on every deploy. It doesn't
-need drizzle-kit, so production installs stay light.
-
-`migrate` and `studio` read `DATABASE_URL`. Bun loads it from your `.env`
-files.
-
-Extra flags go to drizzle-kit, for example
-`bunx lyn db generate --name add_users` or `bunx lyn db studio --port 5000`.
-
-### Other paths
-
-If your schema or migrations live elsewhere, add a `lyn.config.ts` at the
-root of your project:
-
-```ts
-// lyn.config.ts
-import { defineConfig } from "@rouret/lyn/config";
-
-export default defineConfig({
-  database: {
-    schema: "./src/database/schema.ts",
-    migrations: "./migrations",
-  },
-});
-```
-
-Paths are relative to the project root. You don't need a
-`drizzle.config.ts`: Lyn passes the dialect, the paths and the
-[`snake_case` column names](#column-names) to drizzle-kit for you.
-
-## Connection string
+### Connection string
 
 By default Lyn reads `DATABASE_URL`. Pass `url` to use something else — a
 string, or a function receiving the parsed, typed [`app.env`](../configuration/environment-variables.md#reading-the-values):
@@ -183,7 +143,7 @@ new Lyn({
 
 When `url` is given, `DATABASE_URL` is not required.
 
-## Connection pool
+### Connection pool
 
 Lyn keeps a pool of connections. Change its limits with `pool`:
 
@@ -202,9 +162,10 @@ new Lyn({
 ```
 
 Keep `max` × your number of instances below the `max_connections` of your
-Postgres server.
+Postgres server. See [Performance](../guides/performance.md#size-the-pool)
+to tune it.
 
-## Statement timeout
+### Statement timeout
 
 Postgres cancels any query that runs longer than the request timeout
 (`server.requestTimeoutMs`, 30 seconds by default). A slow query can't
@@ -223,26 +184,7 @@ new Lyn({
 It applies to `app.db` too, so raise it, or set `0`, for long scripts.
 Migrations are never cancelled.
 
-## Query logs
-
-Set `logQueries` to log every SQL query at `info` level, with the
-[request id](../configuration/logging.md#request-ids) of the request that
-ran it:
-
-```ts
-new Lyn({ database: { schema, logQueries: true } });
-```
-
-```json
-{"level":30,"requestId":"43297dd3-…","query":"select \"id\", \"email\" from \"users\" where \"users\".\"id\" = $1","paramCount":1,"msg":"[Lyn] SQL query"}
-```
-
-The values of the parameters are never logged, only their count: they
-may hold personal data or secrets. Off by default. The same rule applies
-when a query fails: the error log has the stack frames and the Postgres
-code, not the query text or the bound values.
-
-## Startup and shutdown
+### Startup and shutdown
 
 ```ts
 await app.listen(3000);
@@ -264,24 +206,27 @@ create a new Lyn instance to connect again`.
 The connection is opened on the first query, so `app.handle()` works
 without `listen()`, which is handy in tests.
 
-### Migrating on start
+To apply pending migrations from `listen()`, see
+[Migrating on start](migrations.md#migrating-on-start).
 
-With `migrateOnStart`, `listen()` also applies the pending
-[migrations](#migrations) before serving:
+## Query logs
+
+Set `logQueries` to log every SQL query at `info` level, with the
+[request id](../configuration/logging.md#request-ids) of the request that
+ran it:
 
 ```ts
-new Lyn({ database: { schema, migrateOnStart: true } });
+new Lyn({ database: { schema, logQueries: true } });
 ```
 
-It reads the migrations folder from `drizzle/`, or from your
-[`lyn.config.ts`](#other-paths), relative to the directory you start the
-app from. If a migration fails, `listen()` rejects with a
-`LynDatabaseError` and the server doesn't start. Instances starting
-together wait for each other, so each migration runs once.
+```json
+{"level":30,"requestId":"43297dd3-…","query":"select \"id\", \"email\" from \"users\" where \"users\".\"id\" = $1","paramCount":1,"msg":"[Lyn] SQL query"}
+```
 
-Handy for prototypes and single-instance apps. With several instances,
-prefer running `lyn db migrate` once in your deploy pipeline. Off by
-default.
+The values of the parameters are never logged, only their count: they
+may hold personal data or secrets. Off by default. The same rule applies
+when a query fails: the error log has the stack frames and the Postgres
+code, not the query text or the bound values.
 
 ## Database errors
 
@@ -302,6 +247,9 @@ client errors:
 
 The table, constraint, SQL and values are never sent to the client. They
 are logged on the server with the request id.
+
+Constraints are your last line of defence against bad data: see
+[Let Postgres guard your data](../guides/best-practices.md#let-postgres-guard-your-data).
 
 For a more precise answer, catch the error in your handler and throw
 [your own error](../essentials/errors.md#sending-your-own-errors). The

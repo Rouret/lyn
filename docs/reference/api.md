@@ -19,7 +19,7 @@ import { defineConfig } from "@rouret/lyn/config";
 | `LynEnvError` | Thrown by `new Lyn()` on invalid environment variables · [Environment variables](../configuration/environment-variables.md#when-something-is-wrong) |
 | `LynDatabaseError` | Thrown by `listen()` when the database is unreachable · [Database](../integrations/database.md#startup-and-shutdown) |
 | `@rouret/lyn/db` | Everything from `drizzle-orm` and `drizzle-orm/pg-core` · [Database](../integrations/database.md) |
-| `@rouret/lyn/config` | `defineConfig` for an optional `lyn.config.ts` · [Migrations](../integrations/database.md#other-paths) |
+| `@rouret/lyn/config` | `defineConfig` for an optional `lyn.config.ts` · [Migrations](../integrations/migrations.md#other-paths) |
 
 ## `new Lyn(config?)`
 
@@ -31,11 +31,11 @@ Creates an app. Reads and checks the environment variables right away.
 | `cors` | `{ origin, credentials?, allowedHeaders?, exposedHeaders?, maxAge? }` | [CORS](../configuration/cors.md) |
 | `rateLimit` | `{ max, windowMs?, key?, skip? }` | [Rate limiting](../configuration/rate-limiting.md) |
 | `database` | `{ schema, url?, pool?, logQueries?, migrateOnStart?, statementTimeoutMs? }` | [Database](../integrations/database.md) |
-| `start.hideLynLogo` | `boolean` | [Configuration](../configuration/overview.md) |
-| `server.hostname` | `string`, default `"127.0.0.1"` | [Routing](../essentials/routing.md#starting-and-stopping) |
-| `server.allowedHosts` | `string[]`, default loopback names | [Routing](../essentials/routing.md#starting-and-stopping) |
-| `server.maxBodyBytes` | `number`, default `1048576` | [Validation](../essentials/validation.md#body) |
-| `server.requestTimeoutMs` | `number`, default `30000` | [Handlers](../essentials/handlers.md#returning-a-response) |
+| `start.hideLynLogo` | `boolean` | [Server](../essentials/server.md#starting) |
+| `server.hostname` | `string`, default `"127.0.0.1"` | [Server](../essentials/server.md#who-can-reach-it) |
+| `server.allowedHosts` | `string[]`, default loopback names | [Server](../essentials/server.md#who-can-reach-it) |
+| `server.maxBodyBytes` | `number`, default `1048576` | [Server](../essentials/server.md#limits) |
+| `server.requestTimeoutMs` | `number`, default `30000` | [Server](../essentials/server.md#limits) |
 
 ## Routes
 
@@ -67,9 +67,9 @@ See [Handlers](../essentials/handlers.md).
 
 | Member | Description |
 | --- | --- |
-| `listen(port?)` | Runs the startup checks, then serves on `127.0.0.1` (or `server.hostname`). Returns a promise of the app. |
-| `stop()` | Stops the server and closes the database connection. |
-| `handle(request)` | Runs a `Request` through the app without a server. Returns a promise of the `Response`. |
+| `listen(port?)` | Runs the startup checks, then serves on `127.0.0.1` (or `server.hostname`). Returns a promise of the app. · [Server](../essentials/server.md#starting) |
+| `stop()` | Stops the server and closes the database connection. · [Server](../essentials/server.md#stopping) |
+| `handle(request)` | Runs a `Request` through the app without a server. Returns a promise of the `Response`. · [Server](../essentials/server.md#without-a-server) |
 | `url` | Base URL of the running server. Throws before `listen()`. |
 | `env` | Parsed environment variables, typed from `config.env`. |
 | `db` | The Drizzle instance. A type error without `config.database`. |
@@ -88,4 +88,4 @@ See [Errors](../essentials/errors.md#error-codes).
 | `lyn db migrate` | Applies the pending migrations to `DATABASE_URL`. |
 | `lyn db studio` | Opens Drizzle Studio on `DATABASE_URL`. Needs `drizzle-kit`. |
 
-See [Migrations](../integrations/database.md#migrations).
+See [Migrations](../integrations/migrations.md).

@@ -133,6 +133,17 @@ and tests.
 - [x] CLI and migrations
 - [x] Example project
 - [x] Publish to npm
+- [x] Perf
+- [x] Benchmarking
+- [x] Rate limit
+- [ ] Configuration
+- [ ] Custom Middleware
+- [ ] Cloudflare Workers
+- [ ] Testing
+- [ ] Cron
+- [ ] OpenAPI
+- [ ] OpenTelemetry
+- [ ] Cache
 - [ ] Authentication
 - [ ] Security checklist
 

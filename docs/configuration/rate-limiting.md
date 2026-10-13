@@ -55,6 +55,9 @@ when your proxy overwrites it, otherwise anyone can pick a new IP on each
 request.
 :::
 
+The same goes for any value the client sends: see
+[Never trust the client](../guides/best-practices.md#never-trust-the-client).
+
 Return `undefined` from `key` to skip the limit for a request that has
 no client to count.
 

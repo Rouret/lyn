@@ -80,6 +80,8 @@ nothing to install or configure. It is the next feature on the
 - [Getting started](/guide/getting-started): your first server in five minutes.
 - [Database](/integrations/database): everything `db` can do.
 - [Testing](/guides/testing): test your routes without a server.
+- [Best practices](/guides/best-practices): ship fast, without shipping badly.
+- [Production](/guides/production): Dockerfile, GitHub Actions and GitLab CI.
 
 </div>
 

@@ -14,7 +14,7 @@ A handler receives one context object and returns the response body.
 | --- | --- | --- |
 | `request` | the standard `Request` | always |
 | `set` | `{ status: number; headers: Headers }` | always |
-| `signal` | an `AbortSignal`, aborted on timeout or when the client disconnects | always |
+| `signal` | an `AbortSignal`, aborted on [timeout](#timeouts-and-cancellation) or when the client disconnects | always |
 | `body` | inferred from the body schema | when a [body schema](validation.md#body) is given |
 | `params` | inferred from the params schema | when a [params schema](validation.md#params) is given |
 | `query` | inferred from the query schema | when a [query schema](validation.md#query) is given |
@@ -61,23 +61,9 @@ What the handler returns becomes the response body:
 Returning a `Response` object is not supported: it would be sent as JSON.
 :::
 
-A request has 30 seconds, body included. After that Lyn answers
-`408 REQUEST_TIMEOUT`. Raise it with `server.requestTimeoutMs`.
-
-Lyn can't stop your code, but it tells it to stop: `signal` is aborted at
-the timeout, or as soon as the client disconnects. Pass it to `fetch`, or
-check `signal.aborted` between long steps:
-
-```ts
-.get("/weather", async ({ signal }) => {
-  const response = await fetch("https://api.example.com/weather", { signal });
-  return response.json();
-})
-```
-
-With a [database](../integrations/database.md#statement-timeout),
-Postgres also cancels any query that runs longer than the request
-timeout.
+What you return is sent as is. Return a DTO built for the client, not a
+database row: see
+[Never return a database row](../guides/best-practices.md#never-return-a-database-row).
 
 ## Status and headers
 
@@ -114,6 +100,27 @@ request's [log line](../configuration/logging.md#request-ids), and
 `X-Content-Type-Options: nosniff`, so browsers never run a JSON or text
 response as another type. Set your own `X-Content-Type-Options` with
 `set.headers` to replace it.
+
+## Timeouts and cancellation
+
+A request has 30 seconds, body included. After that Lyn answers
+`408 REQUEST_TIMEOUT`. Change it with
+[`server.requestTimeoutMs`](server.md#limits).
+
+Lyn can't stop your code, but it tells it to stop: `signal` is aborted at
+the timeout, or as soon as the client disconnects. Pass it to `fetch`, or
+check `signal.aborted` between long steps:
+
+```ts
+.get("/weather", async ({ signal }) => {
+  const response = await fetch("https://api.example.com/weather", { signal });
+  return response.json();
+})
+```
+
+With a [database](../integrations/database.md#statement-timeout),
+Postgres also cancels any query that runs longer than the request
+timeout.
 
 ::: info Not supported yet
 - Streaming, files or a custom `Response`.

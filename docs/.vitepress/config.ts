@@ -25,6 +25,7 @@ export default defineConfig({
         items: [
           { text: "What is Lyn?", link: "/guide/introduction" },
           { text: "Getting started", link: "/guide/getting-started" },
+          { text: "Project structure", link: "/guide/project-structure" },
         ],
       },
       {
@@ -34,6 +35,7 @@ export default defineConfig({
           { text: "Handlers", link: "/essentials/handlers" },
           { text: "Validation", link: "/essentials/validation" },
           { text: "Errors", link: "/essentials/errors" },
+          { text: "Server", link: "/essentials/server" },
         ],
       },
       {
@@ -48,11 +50,19 @@ export default defineConfig({
       },
       {
         text: "Integrations",
-        items: [{ text: "Database", link: "/integrations/database" }],
+        items: [
+          { text: "Database", link: "/integrations/database" },
+          { text: "Migrations", link: "/integrations/migrations" },
+        ],
       },
       {
         text: "Guides",
-        items: [{ text: "Testing", link: "/guides/testing" }],
+        items: [
+          { text: "Best practices", link: "/guides/best-practices" },
+          { text: "Testing", link: "/guides/testing" },
+          { text: "Performance", link: "/guides/performance" },
+          { text: "Production", link: "/guides/production" },
+        ],
       },
       {
         text: "Reference",

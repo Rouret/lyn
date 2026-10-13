@@ -25,6 +25,12 @@ new Lyn().put(
 Lyn checks the **body, then params, then query**. The first failure stops
 the request with a `400` (see [Errors](errors.md)).
 
+::: tip Validate everything
+Give every route a schema for each input it reads, and bound every
+string and array. See
+[Validate every input](../guides/best-practices.md#validate-every-input).
+:::
+
 ::: tip
 Use the `z` exported by `@rouret/lyn` rather than installing Zod yourself, so your
 schemas match Lyn's Zod version (Zod 4).
@@ -51,7 +57,7 @@ or any `+json` type (`application/merge-patch+json`…). Lyn checks, in order:
 | --- | --- |
 | No body, or an empty one | `400 NO_BODY` |
 | `Content-Type` missing or not JSON | `415 UNSUPPORTED_MEDIA_TYPE` |
-| The body is larger than `server.maxBodyBytes` (1 MiB) | `413 PAYLOAD_TOO_LARGE` |
+| The body is larger than [`server.maxBodyBytes`](server.md#limits) (1 MiB) | `413 PAYLOAD_TOO_LARGE` |
 | The body is not valid JSON | `400 INVALID_JSON` |
 | The body doesn't match the schema | `400 VALIDATION` |
 
@@ -92,6 +98,18 @@ new Lyn().get("/users/:id", handler, {
 
 Parameters you don't declare are not on `params`.
 
+::: warning String formats in params and query
+`params` and `query` accept `z.string()`, not Zod 4's top-level formats
+such as `z.uuid()` or `z.email()`. Use the method form instead:
+
+```ts
+params: z.object({ id: z.string().uuid() })  // ✅
+params: z.object({ id: z.uuid() })           // type error
+```
+
+The body accepts any Zod schema, formats included.
+:::
+
 ## Query
 
 Declare the query string with a `z.object` whose fields are `z.string()`,
@@ -131,4 +149,6 @@ fails.
 - Validating headers and cookies.
 - Validating the response body.
 - Array values in the query string.
+- `z.enum()`, `.default()` and top-level string formats (`z.uuid()`) in
+  params and query.
 :::

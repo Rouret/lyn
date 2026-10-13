@@ -69,5 +69,6 @@ cors: {
 
 ::: warning CORS is not access control
 CORS protects your users' browsers, not your server. Any other client can
-still call your API: check permissions in your handlers.
+still call your API: check permissions in your handlers. See
+[Never trust the client](../guides/best-practices.md#never-trust-the-client).
 :::
